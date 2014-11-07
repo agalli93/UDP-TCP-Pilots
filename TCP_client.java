@@ -3,9 +3,10 @@ import java.net.*;
 
 class TCPClient
 {
-  public static void main(String argv[]) throws Exception
-  {
-    while(true){
+   public static void main(String argv[]) throws Exception
+   {
+      while (true)
+      {
       String sentence;
       String modifiedSentence;
       BufferedReader inFromUser = new BufferedReader( new InputStreamReader(System.in));
@@ -17,6 +18,6 @@ class TCPClient
       modifiedSentence = inFromServer.readLine();
       System.out.println("FROM SERVER: " + modifiedSentence);
       clientSocket.close();
-    }
-  }
+      }
+   }
 }
