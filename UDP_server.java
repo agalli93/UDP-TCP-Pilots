@@ -41,4 +41,10 @@ class UDPServer
 /*
 Current problem is that when the byte array is written into the file, all 1024 bytes are written, regardless of their value. Need to find a way
 to determine how many bytes to actually record. X-plane might have a limit so we could just use that. For now, possibly binary searching the last
-bit. */
+bit.
+
+URLs Used
+http://systembash.com/content/a-simple-java-udp-server-and-udp-client/
+http://systembash.com/content/a-simple-java-tcp-server-and-tcp-client/
+
+*/
