@@ -22,19 +22,26 @@ class UDPServer
       DatagramSocket serverSocket = new DatagramSocket(9876);
       while(true)
       {
+         //Begin Reciving Data over UDP
          byte[] receiveData = new byte[41]; //Number of bytes represents size of buffer in chars
-         byte[] sendData = new byte[41];
+         // byte[] sendData = new byte[41]; //Necessary only for Echo
          DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
          serverSocket.receive(receivePacket);
          String sentence = new String( receivePacket.getData());
          System.out.println("RECEIVED: " + sentence);
-         Files.write(file_path, receiveData, StandardOpenOption.APPEND);
+         Files.write(file_path, receiveData, StandardOpenOption.APPEND);//Writing received data to a file
             /*Sending back confirmation to the client
             InetAddress IPAddress = receivePacket.getAddress();
             int port = receivePacket.getPort();
             sendData = sentence.getBytes();
             DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
             serverSocket.send(sendPacket);*/
+         //End Receivng data over UDP
+
+         //Begin Sending data over TCP/IP
+
+         //End Sending data over TCP
+
       }
    }
 }
@@ -43,6 +50,7 @@ Current problem is that when the byte array is written into the file, all 1024 b
 to determine how many bytes to actually record. X-plane might have a limit so we could just use that. For now, possibly binary searching the last
 bit.
 -Potentially Solved, limit is 41 bytes I seem to have found
+-Potentially Not solved, limit could change with number of data outputs set in X-Plane, requires further testing
 
 Input format is:
 int Index //index of the list of variables
