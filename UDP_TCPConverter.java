@@ -7,7 +7,7 @@ import java.nio.file.StandardOpenOption;
 import java.net.*;
 
 
-class UDPServer
+class UDP_TCPConverter
 {
    public static void main(String args[]) throws Exception
    {
@@ -37,6 +37,16 @@ class UDPServer
             DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
             serverSocket.send(sendPacket);*/
          //End Receivng data over UDP
+
+         //Convert data from X-Plane to PILOTS Format
+
+         //Begin Sending data over TCP/IP
+         Socket clientSocket = new Socket("localhost", 6789);
+         DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
+         outToServer.writeBytes(sentence + '\n');
+         clientSocket.close();
+         //End Sending data over TCP
+
       }
    }
 }
