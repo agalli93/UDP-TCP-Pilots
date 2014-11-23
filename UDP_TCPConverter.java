@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import java.nio.file.FileSystemException;
 import java.nio.file.StandardOpenOption;
 import java.net.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 
 class UDP_TCPConverter
@@ -39,11 +41,22 @@ class UDP_TCPConverter
          //End Receivng data over UDP
 
          //Convert data from X-Plane to PILOTS Format
+         String output = "";
+         for(int i=0; i<8; ++i){
+            byte[] test_array = {receiveData[4*i+9], receiveData[4*i+10], receiveData[4*i+11], receiveData[4*i+12]};
+            //Testing
+               // byte[] test1_array = {(byte)0x00, 0x40, (byte)0xF6, (byte)0x42};
+               //AB, 67, 51, BF works for Little Endian
+               //00, 40, F6, 42 also works for little endian
+            float converted_number = ByteBuffer.wrap(test_array).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+            output = (output + Float.toString(converted_number) + ",");
+            System.out.println("Float: " + converted_number);
+         }
 
          //Begin Sending data over TCP/IP
          Socket clientSocket = new Socket("localhost", 6789);
          DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
-         outToServer.writeBytes(sentence + '\n');
+         outToServer.writeBytes(output + '\n');
          clientSocket.close();
          //End Sending data over TCP
 

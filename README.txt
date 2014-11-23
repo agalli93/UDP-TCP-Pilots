@@ -1,6 +1,7 @@
 README UDP/TCP Pilots:
 
 UDP/TCP Server with the intended use of receiving data from X-Plane and communicating it to PILOTS
+UDP_TCP Converter will take data in from UDP and output it directly over TCP
 
 Notes for future release:
 
