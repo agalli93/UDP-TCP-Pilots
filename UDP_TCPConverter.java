@@ -7,7 +7,9 @@ import java.nio.file.StandardOpenOption;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-
+import java.util.Date;
+import java.util.*;
+import java.text.*;
 
 class UDP_TCPConverter
 {
@@ -21,16 +23,18 @@ class UDP_TCPConverter
       }
       Files.createFile(file_path); // Once the next available file name has been found, create it
 
+      //Receiving socket opening and date creation
       DatagramSocket serverSocket = new DatagramSocket(9876);
+      Date date = new Date();
+      SimpleDateFormat ft = new SimpleDateFormat (":yyyy-MM-dd hhmmssSSSZ");
       while(true)
       {
          //Begin Reciving Data over UDP
          byte[] receiveData = new byte[41]; //Number of bytes represents size of buffer in chars
-         // byte[] sendData = new byte[41]; //Necessary only for Echo
          DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
          serverSocket.receive(receivePacket);
          String sentence = new String( receivePacket.getData());
-         System.out.println("RECEIVED: " + sentence);
+         System.out.println("Received data");
          Files.write(file_path, receiveData, StandardOpenOption.APPEND);//Writing received data to a file
             /*Sending back confirmation to the client
             InetAddress IPAddress = receivePacket.getAddress();
@@ -39,6 +43,9 @@ class UDP_TCPConverter
             DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
             serverSocket.send(sendPacket);*/
          //End Receivng data over UDP
+
+         //Get the current date and time since the data has been received
+         date = new Date();
 
          //Convert data from X-Plane to PILOTS Format
          String output = "";
@@ -50,8 +57,10 @@ class UDP_TCPConverter
                //00, 40, F6, 42 also works for little endian
             float converted_number = ByteBuffer.wrap(test_array).order(ByteOrder.LITTLE_ENDIAN).getFloat();
             output = (output + Float.toString(converted_number) + ",");
-            System.out.println("Float: " + converted_number);
+            // System.out.println("Float: " + converted_number);
          }
+         System.out.println(ft.format(date)+":"+output);
+
 
          //Begin Sending data over TCP/IP
          Socket clientSocket = new Socket("localhost", 6789);
