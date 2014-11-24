@@ -30,7 +30,9 @@ http://systembash.com/content/a-simple-java-udp-server-and-udp-client/
 http://systembash.com/content/a-simple-java-tcp-server-and-tcp-client/
 http://docs.oracle.com/javase/tutorial/essential/io/file.html#creating
 http://docs.oracle.com/javase/8/docs/api/java/nio/file/StandardOpenOption.html
+http://stackoverflow.com/questions/13469681/how-to-convert-4-bytes-array-to-float-in-java //converting function I used
 
 http://www.nuclearprojects.com/xplane/info.shtml
 http://www.jefflewis.net/XPlaneUDP_9.html
 http://www.nuclearprojects.com/xplane/xplaneref.html
+http://www.scadacore.com/field-applications/miscellaneous/online-hex-converter.html //testing of conversion with hex
