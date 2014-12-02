@@ -68,6 +68,7 @@ class airspeed_data
             System.out.println("Index: " + xplane_index);
             for(int i=0; i<8; ++i)
             {
+               //Selecting the specific data inputs for airspeed example
                if ((xplane_index==3 && (i==0 || i==3)) || (xplane_index == 5 && (i==4 || i == 5))||
                   (xplane_index == 18 && i==3) || (xplane_index == 19 && i == 3)){
                      byte[] float_bytes = {receiveData[4*i+36*data_group+9], receiveData[4*i+36*data_group+10],
@@ -81,10 +82,9 @@ class airspeed_data
                      // System.out.println("Float: " + converted_number);
                }
             }
-            //Testing
+            //Dropping last comma
             if (data_group+1 == num_data_streams) output = output.substring(0,output.length()-1);
          }
-
          //System and file outputs
          System.out.println(output);
          Files.write(file_path, output.getBytes(), StandardOpenOption.APPEND);
