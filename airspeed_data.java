@@ -35,7 +35,7 @@ class airspeed_data
       Date date = new Date();
       SimpleDateFormat ft = new SimpleDateFormat (":yyyy-MM-dd hhmmssSSSZ:");
 
-      //Verify that data is ready to be transmitted to pilots
+      //Verify from the user that data is ready to be transmitted to PILOTS
       Scanner in = new Scanner(System.in);
       System.out.println("Ready to transmit?");
       in.nextLine();
@@ -83,7 +83,6 @@ class airspeed_data
                }
             }
             //Testing
-            // output = output + "-|";
             if (data_group+1 == num_data_streams) output = output.substring(0,output.length()-1);
          }
          //System and file outputs

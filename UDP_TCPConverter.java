@@ -10,6 +10,7 @@ import java.nio.ByteOrder;
 import java.util.Date;
 import java.util.*;
 import java.text.*;
+import java.util.Scanner;
 
 class UDP_TCPConverter
 {
@@ -23,24 +24,30 @@ class UDP_TCPConverter
       }
       Files.createFile(file_path); // Once the next available file name has been found, create it
 
-      //Receiving socket opening and date creation
-      DatagramSocket serverSocket = new DatagramSocket(9876);
+      //EDIT: Number of data streams
+      int num_data_streams = 4;
+      String header = "HEADER";
+      int output_port = 6789;
+      int input_port = 9876;
+      //end EDIT
+
+      //Date creation
       Date date = new Date();
       SimpleDateFormat ft = new SimpleDateFormat (":yyyy-MM-dd hhmmssSSSZ:");
 
       //Verify that data is ready to be transmitted to pilots
-      //**Request from user if they are ready or not**
-
-      //EDIT: Number of data streams
-      int num_data_streams = 4;
-      String header = "HEADER";
-      //end EDIT
+      Scanner in = new Scanner(System.in);
+      System.out.println("Ready to transmit?");
+      in.nextLine();
 
       //Send header to PILOTS
-      Socket headerSocket = new Socket("localhost", 6789);
+      Socket headerSocket = new Socket("localhost", output_port);
       DataOutputStream headerToServer = new DataOutputStream(headerSocket.getOutputStream());
       headerToServer.writeBytes( header + '\n');
       headerSocket.close();
+
+      //Open socket to start receiving data
+      DatagramSocket serverSocket = new DatagramSocket(input_port);
 
       //Begin Receiving Data
       while(true)
@@ -63,7 +70,7 @@ class UDP_TCPConverter
             for(int i=0; i<8; ++i)
             {
                byte[] float_bytes = {receiveData[4*i+36*data_group+9], receiveData[4*i+36*data_group+10],
-                receiveData[4*i+36*data_group+11], receiveData[4*i+36*data_group+12]};
+                      receiveData[4*i+36*data_group+11], receiveData[4*i+36*data_group+12]};
                //Testing
                   // byte[] test1_array = {(byte)0x00, 0x40, (byte)0xF6, (byte)0x42};
                   //AB, 67, 51, BF works for Little Endian
@@ -80,7 +87,7 @@ class UDP_TCPConverter
          Files.write(file_path, output.getBytes(), StandardOpenOption.APPEND);
 
          //Begin Sending received and parsed data over TCP/IP
-         Socket clientSocket = new Socket("localhost", 6789);
+         Socket clientSocket = new Socket("localhost", output_port);
          DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
          outToServer.writeBytes(output + '\n');
          clientSocket.close();
