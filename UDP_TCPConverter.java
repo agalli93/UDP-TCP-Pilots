@@ -76,7 +76,7 @@ class UDP_TCPConverter
             output = output + "||";
          }
          //System and file outputs
-         System.out.println(ft.format(date)+":"+output);
+         System.out.println(output);
          Files.write(file_path, output.getBytes(), StandardOpenOption.APPEND);
 
          //Begin Sending received and parsed data over TCP/IP
