@@ -10,6 +10,7 @@ import java.nio.ByteOrder;
 import java.util.Date;
 import java.util.*;
 import java.text.*;
+import java.util.Scanner;
 
 class airspeed_data
 {
@@ -23,24 +24,30 @@ class airspeed_data
       }
       Files.createFile(file_path); // Once the next available file name has been found, create it
 
-      //Receiving socket opening and date creation
-      DatagramSocket serverSocket = new DatagramSocket(9876);
+      //EDIT: Number of data streams
+      int num_data_streams = 4;
+      String header = "#true_air_speed,ground_speed,wind_speed,wind_angle,air_angle,ground_angle";
+      int output_port = 6789;
+      int input_port = 9876;
+      //end EDIT
+
+      //Date creation
       Date date = new Date();
       SimpleDateFormat ft = new SimpleDateFormat (":yyyy-MM-dd hhmmssSSSZ:");
 
       //Verify that data is ready to be transmitted to pilots
-      //**Request from user if they are ready or not**
-
-      //EDIT: Number of data streams
-      int num_data_streams = 4;
-      String header = "HEADER";
-      //end EDIT
+      Scanner in = new Scanner(System.in);
+      System.out.println("Ready to transmit?");
+      in.nextLine();
 
       //Send header to PILOTS
-      Socket headerSocket = new Socket("localhost", 6789);
+      Socket headerSocket = new Socket("localhost", output_port);
       DataOutputStream headerToServer = new DataOutputStream(headerSocket.getOutputStream());
       headerToServer.writeBytes( header + '\n');
       headerSocket.close();
+
+      //Open socket to start receiving data
+      DatagramSocket serverSocket = new DatagramSocket(input_port);
 
       //Begin Receiving Data
       while(true)
@@ -77,13 +84,14 @@ class airspeed_data
             }
             //Testing
             // output = output + "-|";
+            if (data_group+1 == num_data_streams) output = output.substring(0,output.length()-1);
          }
          //System and file outputs
          System.out.println(output);
          Files.write(file_path, output.getBytes(), StandardOpenOption.APPEND);
 
          //Begin Sending received and parsed data over TCP/IP
-         Socket clientSocket = new Socket("localhost", 6789);
+         Socket clientSocket = new Socket("localhost", output_port);
          DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
          outToServer.writeBytes(output + '\n');
          clientSocket.close();
