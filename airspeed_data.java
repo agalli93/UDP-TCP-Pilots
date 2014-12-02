@@ -41,12 +41,11 @@ class airspeed_data
       in.nextLine();
 
       //Send header to PILOTS
-      Socket headerSocket = new Socket("localhost", output_port);
-      DataOutputStream headerToServer = new DataOutputStream(headerSocket.getOutputStream());
-      headerToServer.writeBytes( header + '\n');
-      headerSocket.close();
+      Socket clientSocket = new Socket("localhost", output_port);
+      DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
+      outToServer.writeBytes( header + '\n');
 
-      //Open socket to start receiving data
+      //Open sockets to start receiving and sending data
       DatagramSocket serverSocket = new DatagramSocket(input_port);
 
       //Begin Receiving Data
@@ -85,17 +84,14 @@ class airspeed_data
             //Testing
             if (data_group+1 == num_data_streams) output = output.substring(0,output.length()-1);
          }
+
          //System and file outputs
          System.out.println(output);
          Files.write(file_path, output.getBytes(), StandardOpenOption.APPEND);
 
          //Begin Sending received and parsed data over TCP/IP
-         Socket clientSocket = new Socket("localhost", output_port);
-         DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
          outToServer.writeBytes(output + '\n');
-         clientSocket.close();
          //End Sending data over TCP
-
       }
    }
 }
