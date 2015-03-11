@@ -36,3 +36,7 @@ http://www.nuclearprojects.com/xplane/info.shtml
 http://www.jefflewis.net/XPlaneUDP_9.html
 http://www.nuclearprojects.com/xplane/xplaneref.html
 http://www.scadacore.com/field-applications/miscellaneous/online-hex-converter.html //testing of conversion with hex
+
+Config File URLs
+http://stackoverflow.com/questions/1925305/best-config-file-format
+http://www.gnu.org/prep/standards/html_node/Configuration.html

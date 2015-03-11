@@ -19,12 +19,12 @@ class UDPServer
       }
       Files.createFile(file_path); // Once the next available file name has been found, create it
 
-      DatagramSocket serverSocket = new DatagramSocket(9876);
+      DatagramSocket serverSocket = new DatagramSocket(17);
       while(true)
       {
          //Begin Reciving Data over UDP
          byte[] receiveData = new byte[41]; //Number of bytes represents size of buffer in chars
-         // byte[] sendData = new byte[41]; //Necessary only for Echo
+         //byte[] sendData = new byte[41]; //Necessary only for Echo
          DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
          serverSocket.receive(receivePacket);
          String sentence = new String( receivePacket.getData());
