@@ -16,7 +16,22 @@ import java.lang.Math;
 
 class UDP_TCPConverter
 {
-   public static class Initializations
+   private class Pair<T>
+   {
+      public Pair() { first = null; second = null; }
+      public Pair(T first, T second) { this.first = first;  this.second = second; }
+
+      public T getFirst() { return first; }
+      public T getSecond() { return second; }
+
+      public void setFirst(T newValue) { first = newValue; }
+      public void setSecond(T newValue) { second = newValue; }
+
+      private T first;
+      private T second;
+   }
+
+   private static class Initializations
    {
       //File Recording Options
       public boolean recordData;
@@ -31,44 +46,53 @@ class UDP_TCPConverter
       public boolean consoleOutput;
 
       public void debugOut(String output) {if (consoleOutput) System.out.println(output);}
+   }
 
-      public String convertInputData(byte[] receiveData, int numDataStreams, String output)
+   public static String convertInputData(byte[] receiveData, int numDataStreams, String output, Initializations config)
+   {
+      for (int dataGroup = 0; dataGroup<numDataStreams; ++dataGroup) //For each data stream
       {
-         for (int dataGroup = 0; dataGroup<numDataStreams; ++dataGroup) //For each data stream
+         int xPlaneIndex = receiveData[5+36*dataGroup];
+         config.debugOut("Index: " + xPlaneIndex);
+         for(int dataIndex=0; dataIndex<8; ++dataIndex)
          {
-            int xPlaneIndex = receiveData[5+36*dataGroup];
-            debugOut("Index: " + xPlaneIndex);
-            for(int dataIndex=0; dataIndex<8; ++dataIndex)
-            {
-               byte[] floatBytes = {receiveData[(36*dataGroup)+(4*dataIndex)+9], //Offset by 9 because of 5 byte data and 4 byte xPlaneIndex
-                  receiveData[(36*dataGroup)+(4*dataIndex)+10],
-                  receiveData[(36*dataGroup)+(4*dataIndex)+11],
-                  receiveData[(36*dataGroup)+(4*dataIndex)+12]};
-               //Testing
-                  // byte[] test1_array = {(byte)0x00, 0x40, (byte)0xF6, (byte)0x42};
-                  //AB, 67, 51, BF works for Little Endian
-                  //00, 40, F6, 42 also works for little endian
-               float convertedNumber = ByteBuffer.wrap(floatBytes).order(ByteOrder.LITTLE_ENDIAN).getFloat();
-               output = (output + Float.toString(convertedNumber) + ",");
-               debugOut("Float "+dataGroup+","+dataIndex+": " + convertedNumber);
-            }
+            byte[] floatBytes = {receiveData[(36*dataGroup)+(4*dataIndex)+9], //Offset by 9 because of 5 byte data and 4 byte xPlaneIndex
+               receiveData[(36*dataGroup)+(4*dataIndex)+10],
+               receiveData[(36*dataGroup)+(4*dataIndex)+11],
+               receiveData[(36*dataGroup)+(4*dataIndex)+12]};
+            //Testing
+               // byte[] test1_array = {(byte)0x00, 0x40, (byte)0xF6, (byte)0x42};
+               //AB, 67, 51, BF works for Little Endian
+               //00, 40, F6, 42 also works for little endian
+            float convertedNumber = ByteBuffer.wrap(floatBytes).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+            output = (output + Float.toString(convertedNumber) + ",");
+            config.debugOut("Float "+dataGroup+","+dataIndex+": " + convertedNumber);
          }
-         return output;
       }
-
+      return output;
    }
 
    //Maybe make function to choose whether or not to read the init file
-   //Initializes the program with the config file and reads in the list of data groups
       //We'll pass in the dictionary by reference.
    //Dictionary{string dataStreamName: (int dataGroup,int index)} dataInformation
-   public static void init(Initializations config) throws Exception
+   //Add to debug function with levels
+   //Add feature to disable TCP output
+   //Create Preconfigured datastreams.ini files for users who want certain data streams
+   //Read in dictionary of data Groups and Indexes
+   //**Need to get map of dataGroups
+
+   //Initializes the program with the config file and reads in the list of data groups
+   private static void init(Initializations config) throws Exception
    {
       //Read in the config file
       Properties prop = new Properties();
       String fileName = "config.ini";
       InputStream is = new FileInputStream(fileName);
-      prop.load(is);
+
+      if (is != null) prop.load(is);
+      else throw new FileNotFoundException("Config File, " + fileName + ", not found in current directory");
+
+      is.close();
 
       if (prop.getProperty("file.recordData").equals("true")) config.recordData = true;
       else config.recordData = false;
@@ -85,9 +109,40 @@ class UDP_TCPConverter
          //Create dictionary with {data stream name : (data group, index)}
    }
 
-   public static void readInDataStreams(){} // from XML
-   //Create vector with each index holding an array of tuples of the data group,index wanted.
-   //Each index will hold only one data group (Sorted arbitrarily)
+   private Integer readInUserStreams(String header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
+   {
+      //Load user selected data stream file
+      Properties userStreams = new Properties();
+      String fileName = "userSelections.ini"; //**Might want to make this a command line arg or put it in the config file
+      InputStream is = new FileInputStream(fileName);
+      //Error check to make sure file exists
+      if (is != null) userStreams.load(is);
+      else throw new FileNotFoundException("Data Stream Selections file, " +fileName + ", not found in current directory");
+      is.close();
+
+      // Declare set of strings that are the dataStreamUser names and a set of Integers to keep track of the unique dataGroups that will
+      // need to be requested from X-Plane.
+      Set<String> userKeys = userStreams.stringPropertyNames();
+      Iterator<String> userKeysItr = userKeys.iterator();
+
+      // Get the keys from the file, put them in the header, then get their dataGroup/dataIndex and store them
+      while (userKeysItr.hasNext()) {
+         String key = userKeysItr.next();
+         //Add the key to the header file
+         header = (header + key + ',');
+         //Retreive the dG/dI pair, store the data group to track of unique dataGroups needed
+         Pair<Integer> groupIndexPair = dataGroups.get(userStreams.getProperty(key));
+         dataGroupNums.add(groupIndexPair.getFirst());
+         streamVector.add(groupIndexPair);
+      }
+      header = header.substring(0,header.length()-2); // Removes hanging comma
+      //**Need to pass string by reference, maybe use replaceAll() *********
+      Integer numDataStreams = dataGroupNums.size();
+      return numDataStreams;
+   }
+
+   //**private void readInXplaneDataStreams
+
 
    public static void main(String args[]) throws Exception
    {
@@ -96,7 +151,6 @@ class UDP_TCPConverter
       init(config);//, dataInformation);
 
       //Create a new file to store the data taken in by the server
-      // Path filePath = Paths.get("C:\\users\\gallia\\dropbox\\linux\\Sim_data_dir\\Sim_data.txt");
       if(config.recordData)
       {
          config.filePath = Paths.get((config.filePath).toString() + "\\Sim_data0.txt");
@@ -111,13 +165,16 @@ class UDP_TCPConverter
          Files.createFile(config.filePath); // Once the next available file name has been found, create it
       }
 
-      //EDIT: Number of data streams
-      int numDataStreams = 1; //Will be removed due to config from user's selection of data streams in XML
-      String header = "HEADER"; //Header is going to be autogenerated by parsing the XML file
-      // int outputPort = 6789;
-      // int inputPort = 9876;
 
-      //end EDIT
+      //**Call function to retreive data groups.
+
+      // Parsing of data Streams
+      Integer numDataStreams = new Integer(5); //**Remove instantiation as it will be taken care of by the readIn function below
+      String header = new String(); //Header is going to be autogenerated by parsing the XML file
+      Vector<Pair<Integer> > streamVector = new Vector<Pair<Integer> >(); // Vector of dG/dI's requested by user
+      Set<Integer> dataGroupNums = new HashSet<Integer>(); // Set keeping record of unique data groups needed
+      // numDataStreams = readInUserStreams(header, dataGroups, streamVector, dataGroupNums);
+
 
       //Date creation
       Date date = new Date();
@@ -150,7 +207,7 @@ class UDP_TCPConverter
          String output = ft.format(date);
 
          //Convert data from X-Plane format to PILOTS Format
-         output = config.convertInputData(receiveData, numDataStreams, output);
+         output = convertInputData(receiveData, numDataStreams, output, config);
 
          //System and file outputs
          config.debugOut(output);
