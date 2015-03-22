@@ -16,6 +16,10 @@ import java.lang.Math;
 
 class UDP_TCPConverter
 {
+   static boolean debug = false;
+
+   private static void debugOut(String output) {if (debug) System.out.println(output);}
+
    private class Pair<T>
    {
       public Pair() { first = null; second = null; }
@@ -42,10 +46,7 @@ class UDP_TCPConverter
       public InetAddress outputIP;
       public int outputPort;
 
-      //Debug options
-      public boolean consoleOutput;
-
-      public void debugOut(String output) {if (consoleOutput) System.out.println(output);}
+      //Debug options set globally for ease of programming
    }
 
    public static String convertInputData(byte[] receiveData, int numDataStreams, String output, Initializations config)
@@ -53,7 +54,7 @@ class UDP_TCPConverter
       for (int dataGroup = 0; dataGroup<numDataStreams; ++dataGroup) //For each data stream
       {
          int xPlaneIndex = receiveData[5+36*dataGroup];
-         config.debugOut("Index: " + xPlaneIndex);
+         debugOut("Index: " + xPlaneIndex);
          for(int dataIndex=0; dataIndex<8; ++dataIndex)
          {
             byte[] floatBytes = {receiveData[(36*dataGroup)+(4*dataIndex)+9], //Offset by 9 because of 5 byte data and 4 byte xPlaneIndex
@@ -66,7 +67,7 @@ class UDP_TCPConverter
                //00, 40, F6, 42 also works for little endian
             float convertedNumber = ByteBuffer.wrap(floatBytes).order(ByteOrder.LITTLE_ENDIAN).getFloat();
             output = (output + Float.toString(convertedNumber) + ",");
-            config.debugOut("Float "+dataGroup+","+dataIndex+": " + convertedNumber);
+            debugOut("Float "+dataGroup+","+dataIndex+": " + convertedNumber);
          }
       }
       return output;
@@ -78,10 +79,8 @@ class UDP_TCPConverter
    //Add to debug function with levels
    //Add feature to disable TCP output
    //Create Preconfigured datastreams.ini files for users who want certain data streams
-   //Read in dictionary of data Groups and Indexes
-   //**Need to get map of dataGroups
-
-   //Initializes the program with the config file and reads in the list of data groups
+   //** Make Debug global
+   //**Initializes the program with the config file and reads in the list of data groups
    private static void init(Initializations config) throws Exception
    {
       //Read in the config file
@@ -103,8 +102,8 @@ class UDP_TCPConverter
       config.outputIP = InetAddress.getByName(prop.getProperty("network.outputIP"));
       config.outputPort = Integer.parseInt(prop.getProperty("network.outputPort"));
 
-      if (prop.getProperty("debug.consoleOutput").equals("true")) config.consoleOutput = true;
-      else config.consoleOutput = false;
+      if (prop.getProperty("debug.consoleOutput").equals("true")) debug = true;
+      else debug = false;
       //Read in the list of data groups and indexes
          //Create dictionary with {data stream name : (data group, index)}
    }
@@ -141,9 +140,6 @@ class UDP_TCPConverter
       return numDataStreams;
    }
 
-   //**private void readInXplaneDataStreams
-
-
    public static void main(String args[]) throws Exception
    {
       //Dictionary{string dataStreamName: (int dataGroup,int index)} dataInformation
@@ -161,12 +157,9 @@ class UDP_TCPConverter
             String subStringFilePath = ((config.filePath).toString()).substring(0,pathOffset+(int)numOffset);
             config.filePath = Paths.get(subStringFilePath + ++fileNum + ".txt");
          }
-         config.debugOut("File Path:"+((config.filePath).toString()));
+         debugOut("File Path:"+((config.filePath).toString()));
          Files.createFile(config.filePath); // Once the next available file name has been found, create it
       }
-
-
-      //**Call function to retreive data groups.
 
       // Parsing of data Streams
       Integer numDataStreams = new Integer(5); //**Remove instantiation as it will be taken care of by the readIn function below
@@ -210,7 +203,7 @@ class UDP_TCPConverter
          output = convertInputData(receiveData, numDataStreams, output, config);
 
          //System and file outputs
-         config.debugOut(output);
+         debugOut(output);
          if (config.recordData) Files.write(config.filePath, output.getBytes(), StandardOpenOption.APPEND);
 
          //Begin Sending received and parsed data over TCP/IP
