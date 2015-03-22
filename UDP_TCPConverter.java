@@ -14,13 +14,7 @@ import java.util.Scanner;
 import java.util.Properties;
 import java.lang.Math;
 
-class UDP_TCPConverter
-{
-   static boolean debug = false;
-
-   private static void debugOut(String output) {if (debug) System.out.println(output);}
-
-   private class Pair<T>
+class Pair<T>
    {
       public Pair() { first = null; second = null; }
       public Pair(T first, T second) { this.first = first;  this.second = second; }
@@ -34,6 +28,11 @@ class UDP_TCPConverter
       private T first;
       private T second;
    }
+
+class UDP_TCPConverter
+{
+   static boolean debug = false;
+   private static void debugOut(String output) {if (debug) System.out.println(output);}
 
    private static class Initializations
    {
@@ -50,6 +49,7 @@ class UDP_TCPConverter
       //Debug options set globally for ease of programming
    }
 
+   //Finished
    public static String convertInputData(byte[] receiveData, int numDataStreams, String output, Initializations config)
    {
       for (int dataGroup = 0; dataGroup<numDataStreams; ++dataGroup) //For each data stream
@@ -74,14 +74,54 @@ class UDP_TCPConverter
       return output;
    }
 
+   //Function to read in the list of data groups from the file specified by the user
+   private static void readInGroupsList(Properties prop, Map<String, Pair<Integer> > dataGroups) throws Exception
+   {
+      //Read in the list of source data groups and indexes
+      String dataSourceNames = prop.getProperty("dict.source");
+      InputStream is = new FileInputStream(dataSourceNames);
+
+      //Error check file existance
+      if (is == null) throw new FileNotFoundException("Source Names file, " + dataSourceNames + ", not found in current directory");
+
+      DataInputStream dis = new DataInputStream(is);
+      dis.readChar(); dis.readChar(); //Clears the first carriage return and linefeed
+      int intDataGroup = 0;
+      int intDataIndex = 0;
+      String dataStreamName = new String();
+      //While there are still chracters available
+      while (dis.available()>0)
+      {
+         char c = dis.readChar();
+         //If delineator is reached, take that data group name and <dG,dI> and insert it into the map
+         if (c == '|')
+         {
+            dataStreamName.trim();// trim the whitespace
+            Pair<Integer> groupAndIndex = new Pair<Integer>(intDataGroup,intDataIndex);
+            dataGroups.put(dataStreamName, groupAndIndex);
+            dataStreamName = new String();
+            //If exceeded # of indexes in a group, increment group and reset index
+            if (++intDataIndex == 8)
+            {
+               ++intDataGroup;
+               intDataIndex = 0;
+            }
+            continue;
+         }
+         //If we've reached the end of the first line of data stream names, break
+         else if (c == '\r') break;
+         //If regular character, add it to the string and continue
+         dataStreamName = dataStreamName + c;
+      }
+   }
+
    //Maybe make function to choose whether or not to read the init file
       //We'll pass in the dictionary by reference.
    //Dictionary{string dataStreamName: (int dataGroup,int index)} dataInformation
    //Add to debug function with levels
-   //Add feature to disable TCP output
    //Create Preconfigured datastreams.ini files for users who want certain data streams
    //**Initializes the program with the config file and reads in the list of data groups
-   private static void init(Initializations config) throws Exception
+   private static void init(Initializations config, Map<String, Pair<Integer> > dataGroups) throws Exception
    {
       //Read in the config file
       Properties prop = new Properties();
@@ -107,15 +147,12 @@ class UDP_TCPConverter
 
       if (prop.getProperty("network.writeToTCP").equals("true")) config.writeToTCP = true;
       else config.writeToTCP = false;
-      //Read in the list of data groups and indexes
-         //Create dictionary with {data stream name : (data group, index)}
 
-      String dataStreamName ="sourceNames.txt";
-      is = new FileInputStream(dataStreamName);
-      DataInputStream dis = new DataInputStream(is);
+      readInGroupsList(prop, dataGroups);
    }
 
-   private Integer readInUserStreams(String header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
+   //Finished if the header formats properly
+   private static Integer readInUserStreams(String header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
    {
       //Load user selected data stream file
       Properties userStreams = new Properties();
@@ -142,16 +179,17 @@ class UDP_TCPConverter
          streamVector.add(groupIndexPair);
       }
       header = header.substring(0,header.length()-2); // Removes hanging comma
-      //**Need to pass string by reference, maybe use replaceAll() *********
+      debugOut("Header after creation in readInUserStreams: "+ header);
+      header.replaceAll(header,header); //**This very well could break it, needs further testing.
       Integer numDataStreams = dataGroupNums.size();
       return numDataStreams;
    }
 
    public static void main(String args[]) throws Exception
    {
-      //Dictionary{string dataStreamName: (int dataGroup,int index)} dataInformation
+      Map<String, Pair<Integer> > dataGroups = new HashMap<String, Pair<Integer> >();
       Initializations config = new Initializations();
-      init(config);//, dataInformation);
+      init(config, dataGroups);
 
       //Create a new file to store the data taken in by the server
       if(config.recordData)
@@ -168,13 +206,14 @@ class UDP_TCPConverter
          Files.createFile(config.filePath); // Once the next available file name has been found, create it
       }
 
-      // Parsing of data Streams
-      Integer numDataStreams = new Integer(5); //**Remove instantiation as it will be taken care of by the readIn function below
-      String header = new String(); //Header is going to be autogenerated by parsing the XML file
-      Vector<Pair<Integer> > streamVector = new Vector<Pair<Integer> >(); // Vector of dG/dI's requested by user
-      Set<Integer> dataGroupNums = new HashSet<Integer>(); // Set keeping record of unique data groups needed
-      // numDataStreams = readInUserStreams(header, dataGroups, streamVector, dataGroupNums);
-
+      // Parsing of user requested data streams
+      Integer numDataStreams; //**Remove instantiation after function finished as it will be taken
+      // care of by the readIn function below
+      String header = new String(); //Instantiated for the function
+      Vector<Pair<Integer> > streamVector = new Vector<Pair<Integer> >(); // Vector of <dG,dI>'s requested by user
+      Set<Integer> dataGroupNums = new HashSet<Integer>(); // a Set keeping record of unique data groups needed to pull
+      numDataStreams = readInUserStreams(header, dataGroups, streamVector, dataGroupNums);
+      debugOut("Header Test (should be the actual header if the user file is set):: " + header); //**Needs testing
 
       //Date creation
       Date date = new Date();
@@ -187,14 +226,13 @@ class UDP_TCPConverter
 
       DataOutputStream outToServer = null;
 
-      //Send header to PILOTS
+      //Send header to PILOTS and file if the user specifies output to said stream
       if (config.writeToTCP)
       {
          Socket clientSocket = new Socket(config.outputIP, config.outputPort);
          outToServer = new DataOutputStream(clientSocket.getOutputStream());
          outToServer.writeBytes( header + '\n');
       }
-
       if (config.recordData) Files.write(config.filePath, header.getBytes(), StandardOpenOption.APPEND);
 
       //Open socket to start receiving data
