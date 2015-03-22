@@ -45,6 +45,7 @@ class UDP_TCPConverter
       public int inputPort;
       public InetAddress outputIP;
       public int outputPort;
+      public boolean writeToTCP;
 
       //Debug options set globally for ease of programming
    }
@@ -79,7 +80,6 @@ class UDP_TCPConverter
    //Add to debug function with levels
    //Add feature to disable TCP output
    //Create Preconfigured datastreams.ini files for users who want certain data streams
-   //** Make Debug global
    //**Initializes the program with the config file and reads in the list of data groups
    private static void init(Initializations config) throws Exception
    {
@@ -104,8 +104,15 @@ class UDP_TCPConverter
 
       if (prop.getProperty("debug.consoleOutput").equals("true")) debug = true;
       else debug = false;
+
+      if (prop.getProperty("network.writeToTCP").equals("true")) config.writeToTCP = true;
+      else config.writeToTCP = false;
       //Read in the list of data groups and indexes
          //Create dictionary with {data stream name : (data group, index)}
+
+      String dataStreamName ="sourceNames.txt";
+      is = new FileInputStream(dataStreamName);
+      DataInputStream dis = new DataInputStream(is);
    }
 
    private Integer readInUserStreams(String header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
@@ -178,10 +185,17 @@ class UDP_TCPConverter
       System.out.println("Ready to transmit?");
       in.nextLine();
 
+      DataOutputStream outToServer = null;
+
       //Send header to PILOTS
-      Socket clientSocket = new Socket(config.outputIP, config.outputPort);
-      DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
-      outToServer.writeBytes( header + '\n');
+      if (config.writeToTCP)
+      {
+         Socket clientSocket = new Socket(config.outputIP, config.outputPort);
+         outToServer = new DataOutputStream(clientSocket.getOutputStream());
+         outToServer.writeBytes( header + '\n');
+      }
+
+      if (config.recordData) Files.write(config.filePath, header.getBytes(), StandardOpenOption.APPEND);
 
       //Open socket to start receiving data
       DatagramSocket serverSocket = new DatagramSocket(config.inputPort);
@@ -202,12 +216,11 @@ class UDP_TCPConverter
          //Convert data from X-Plane format to PILOTS Format
          output = convertInputData(receiveData, numDataStreams, output, config);
 
-         //System and file outputs
+         //Network, Debug, and file outputs
          debugOut(output);
          if (config.recordData) Files.write(config.filePath, output.getBytes(), StandardOpenOption.APPEND);
 
-         //Begin Sending received and parsed data over TCP/IP
-         outToServer.writeBytes(output + '\n');
+         if(config.writeToTCP) outToServer.writeBytes(output + '\n');
          //End Sending data over TCP
       }
    }
