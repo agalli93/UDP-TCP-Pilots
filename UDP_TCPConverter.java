@@ -1,3 +1,4 @@
+package pilots.util;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -49,7 +50,7 @@ class UDP_TCPConverter
       //Debug options set globally for ease of programming
    }
 
-   //Finished
+   //**Need to have it only take the data indexes that we want
    public static String convertInputData(byte[] receiveData, int numDataStreams, String output, Initializations config)
    {
       for (int dataGroup = 0; dataGroup<numDataStreams; ++dataGroup) //For each data stream
@@ -120,7 +121,7 @@ class UDP_TCPConverter
    //Dictionary{string dataStreamName: (int dataGroup,int index)} dataInformation
    //Add to debug function with levels
    //Create Preconfigured datastreams.ini files for users who want certain data streams
-   //**Initializes the program with the config file and reads in the list of data groups
+   //Initializes the program with the config file and reads in the list of data groups
    private static void init(Initializations config, Map<String, Pair<Integer> > dataGroups) throws Exception
    {
       //Read in the config file
@@ -207,7 +208,7 @@ class UDP_TCPConverter
       }
 
       // Parsing of user requested data streams
-      Integer numDataStreams; //**Remove instantiation after function finished as it will be taken
+      Integer numDataStreams;
       // care of by the readIn function below
       String header = new String(); //Instantiated for the function
       Vector<Pair<Integer> > streamVector = new Vector<Pair<Integer> >(); // Vector of <dG,dI>'s requested by user
