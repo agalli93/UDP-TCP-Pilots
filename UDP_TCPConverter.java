@@ -1,4 +1,3 @@
-package pilots.util;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -14,21 +13,22 @@ import java.text.*;
 import java.util.Scanner;
 import java.util.Properties;
 import java.lang.Math;
+import java.lang.StringBuilder;
 
 class Pair<T>
-   {
-      public Pair() { first = null; second = null; }
-      public Pair(T first, T second) { this.first = first;  this.second = second; }
+{
+   public Pair() { first = null; second = null; }
+   public Pair(T first, T second) { this.first = first;  this.second = second; }
 
-      public T getFirst() { return first; }
-      public T getSecond() { return second; }
+   public T getFirst() { return first; }
+   public T getSecond() { return second; }
 
-      public void setFirst(T newValue) { first = newValue; }
-      public void setSecond(T newValue) { second = newValue; }
+   public void setFirst(T newValue) { first = newValue; }
+   public void setSecond(T newValue) { second = newValue; }
 
-      private T first;
-      private T second;
-   }
+   private T first;
+   private T second;
+}
 
 class UDP_TCPConverter
 {
@@ -86,20 +86,21 @@ class UDP_TCPConverter
       if (is == null) throw new FileNotFoundException("Source Names file, " + dataSourceNames + ", not found in current directory");
 
       DataInputStream dis = new DataInputStream(is);
-      dis.readChar(); dis.readChar(); //Clears the first carriage return and linefeed
+      dis.readByte(); dis.readByte(); //Clears the first carriage return and linefeed
       int intDataGroup = 0;
       int intDataIndex = 0;
       String dataStreamName = new String();
       //While there are still chracters available
       while (dis.available()>0)
       {
-         char c = dis.readChar();
+         char c =(char)dis.readByte();
          //If delineator is reached, take that data group name and <dG,dI> and insert it into the map
          if (c == '|')
          {
-            dataStreamName.trim();// trim the whitespace
+            dataStreamName = dataStreamName.trim();// trim the whitespace
             Pair<Integer> groupAndIndex = new Pair<Integer>(intDataGroup,intDataIndex);
             dataGroups.put(dataStreamName, groupAndIndex);
+            debugOut(dataStreamName + " " + intDataGroup + " " + intDataIndex); //**
             dataStreamName = new String();
             //If exceeded # of indexes in a group, increment group and reset index
             if (++intDataIndex == 8)
@@ -116,11 +117,9 @@ class UDP_TCPConverter
       }
    }
 
-   //Maybe make function to choose whether or not to read the init file
-      //We'll pass in the dictionary by reference.
-   //Dictionary{string dataStreamName: (int dataGroup,int index)} dataInformation
    //Add to debug function with levels
    //Create Preconfigured datastreams.ini files for users who want certain data streams
+
    //Initializes the program with the config file and reads in the list of data groups
    private static void init(Initializations config, Map<String, Pair<Integer> > dataGroups) throws Exception
    {
@@ -153,7 +152,7 @@ class UDP_TCPConverter
    }
 
    //Finished if the header formats properly
-   private static Integer readInUserStreams(String header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
+   private static Integer readInUserStreams(StringBuilder header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
    {
       //Load user selected data stream file
       Properties userStreams = new Properties();
@@ -173,15 +172,14 @@ class UDP_TCPConverter
       while (userKeysItr.hasNext()) {
          String key = userKeysItr.next();
          //Add the key to the header file
-         header = (header + key + ',');
+         header.append(key + ',');
          //Retreive the dG/dI pair, store the data group to track of unique dataGroups needed
          Pair<Integer> groupIndexPair = dataGroups.get(userStreams.getProperty(key));
-         dataGroupNums.add(groupIndexPair.getFirst());
+         debugOut(userStreams.getProperty(key)+ "--Group #:" +groupIndexPair.getFirst());
+         dataGroupNums.add(groupIndexPair.getFirst()); //** FIX
          streamVector.add(groupIndexPair);
       }
-      header = header.substring(0,header.length()-2); // Removes hanging comma
-      debugOut("Header after creation in readInUserStreams: "+ header);
-      header.replaceAll(header,header); //**This very well could break it, needs further testing.
+      // debugOut("Header after creation in readInUserStreams: "+ header);
       Integer numDataStreams = dataGroupNums.size();
       return numDataStreams;
    }
@@ -210,11 +208,12 @@ class UDP_TCPConverter
       // Parsing of user requested data streams
       Integer numDataStreams;
       // care of by the readIn function below
-      String header = new String(); //Instantiated for the function
+      StringBuilder headerSb = new StringBuilder("#"); //Instantiated for the function
       Vector<Pair<Integer> > streamVector = new Vector<Pair<Integer> >(); // Vector of <dG,dI>'s requested by user
-      Set<Integer> dataGroupNums = new HashSet<Integer>(); // a Set keeping record of unique data groups needed to pull
-      numDataStreams = readInUserStreams(header, dataGroups, streamVector, dataGroupNums);
-      debugOut("Header Test (should be the actual header if the user file is set):: " + header); //**Needs testing
+      Set<Integer> dataGroupNums = new HashSet<Integer>(); // a Set keeping record of unique data groups needed to pull (verified)
+      numDataStreams = readInUserStreams(headerSb, dataGroups, streamVector, dataGroupNums);
+      String header = headerSb.substring(0,headerSb.length()-1); // Removes hanging comma
+      debugOut("Header Test--" + header);
 
       //Date creation
       Date date = new Date();
