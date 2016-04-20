@@ -76,6 +76,10 @@ class UDP_TCPConverter
    }
 
    //Function to read in the list of data groups from the file specified by the user
+   //**Current issue is shown with current userSelections file. Since data output to file from xPlane doesn't actually separate 
+   // where there are spaces in the datastream, it will recognize later data streams as being in earlier data streams. 
+      //solution: write appropriate gaps into the sourceNames file should solve the problem. Additionally, source names needs to 
+      // be made with entire file of outputs to ensure all datastreams are there.
    private static void readInGroupsList(Properties prop, Map<String, Pair<Integer> > dataGroups) throws Exception
    {
       //Read in the list of source data groups and indexes
@@ -152,6 +156,7 @@ class UDP_TCPConverter
    }
 
    //Finished if the header formats properly
+   //broken until readInGroupsList problem is fixed.
    private static Integer readInUserStreams(StringBuilder header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
    {
       //Load user selected data stream file
@@ -175,8 +180,8 @@ class UDP_TCPConverter
          header.append(key + ',');
          //Retreive the dG/dI pair, store the data group to track of unique dataGroups needed
          Pair<Integer> groupIndexPair = dataGroups.get(userStreams.getProperty(key));
-         debugOut(userStreams.getProperty(key)+ "--Group #:" +groupIndexPair.getFirst());
-         dataGroupNums.add(groupIndexPair.getFirst()); //** FIX
+         debugOut(userStreams.getProperty(key)+ "--Group #:" +groupIndexPair.getFirst() + " --Index#:" + groupIndexPair.getSecond());
+         dataGroupNums.add(groupIndexPair.getFirst()); 
          streamVector.add(groupIndexPair);
       }
       // debugOut("Header after creation in readInUserStreams: "+ header);
@@ -196,6 +201,7 @@ class UDP_TCPConverter
          config.filePath = Paths.get((config.filePath).toString() + "\\Sim_data0.txt");
          int fileNum = 1;
          while (Files.exists(config.filePath)){
+            debugOut("hit");
             int pathOffset = (config.filePath).toString().length()-5;
             double numOffset = -Math.floor(Math.log10(fileNum));
             String subStringFilePath = ((config.filePath).toString()).substring(0,pathOffset+(int)numOffset);

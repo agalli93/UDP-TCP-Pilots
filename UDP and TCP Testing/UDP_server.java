@@ -19,7 +19,7 @@ class UDPServer
       }
       Files.createFile(file_path); // Once the next available file name has been found, create it
 
-      DatagramSocket serverSocket = new DatagramSocket(17);
+      DatagramSocket serverSocket = new DatagramSocket(9876);
       while(true)
       {
          //Begin Reciving Data over UDP
