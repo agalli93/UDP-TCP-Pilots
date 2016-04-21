@@ -55,15 +55,15 @@ class UDP_TCPConverter
    {
       Iterator<Pair<Integer> > streamVectorItr = streamVector.iterator();
       Pair<Integer> nextDataIndex = streamVectorItr.next(); 
-      debugOut(""+numDataStreams);
       for (int dataGroup = 0; dataGroup<numDataStreams; ++dataGroup) //For each data stream
       {
 
          int xPlaneIndex = receiveData[5+36*dataGroup];
          debugOut("Index: " + xPlaneIndex);
          if (nextDataIndex.getFirst() != xPlaneIndex) {
-            debugOut("Passing group #" + xPlaneIndex);
-            continue;
+            System.out.println("The output dataGroups in xPlane were not properly selected. Please review the dataGroups to select and make sure " +
+               "ONLY those are selected.");
+            System.exit(1);
          }
 
          for(int dataIndex=0; dataIndex<8; ++dataIndex)
@@ -88,6 +88,7 @@ class UDP_TCPConverter
             nextDataIndex = streamVectorItr.next();
          }
       }
+      output = (output.substring(0,output.length()-1) + '\n');
       return output;
    }
 
@@ -229,6 +230,8 @@ class UDP_TCPConverter
          lowestGroupIndexPairString = "";
       }
 
+      //Removes the trailing comma
+      header.deleteCharAt(header.length()-1);
       
       debugOut("Sanity check of streamVector");
       Iterator<Pair<Integer> > itr = streamVector.iterator();
@@ -253,12 +256,16 @@ class UDP_TCPConverter
       Initializations config = new Initializations();
       init(config, dataGroups);
 
+      debugOut("Test1");
       //Create a new file to store the data taken in by the server
       if(config.recordData)
       {
-         config.filePath = Paths.get((config.filePath).toString() + "\\Sim_data0.txt");
+         debugOut("Test");
+         config.filePath = Paths.get((config.filePath).toString() + "/Sim_data0.txt");
+         debugOut(config.filePath.toString());
          int fileNum = 1;
          while (Files.exists(config.filePath)){
+            debugOut("hit");
             int pathOffset = (config.filePath).toString().length()-5;
             double numOffset = -Math.floor(Math.log10(fileNum));
             String subStringFilePath = ((config.filePath).toString()).substring(0,pathOffset+(int)numOffset);
@@ -288,15 +295,17 @@ class UDP_TCPConverter
       in.nextLine();
 
       DataOutputStream outToServer = null;
+      String outputHeader = (header.toString() + '\n');
 
       //Send header to PILOTS and file if the user specifies output to said stream
       if (config.writeToTCP)
       {
          Socket clientSocket = new Socket(config.outputIP, config.outputPort);
          outToServer = new DataOutputStream(clientSocket.getOutputStream());
-         outToServer.writeBytes( header + '\n');
+         outToServer.writeBytes(outputHeader);
       }
-      if (config.recordData) Files.write(config.filePath, header.getBytes(), StandardOpenOption.APPEND);
+
+      if (config.recordData) Files.write(config.filePath, outputHeader.getBytes(), StandardOpenOption.APPEND);
 
       //Open socket to start receiving data
       DatagramSocket serverSocket = new DatagramSocket(config.inputPort);
