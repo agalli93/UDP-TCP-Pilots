@@ -51,14 +51,28 @@ class UDP_TCPConverter
    }
 
    //**Need to have it only take the data indexes that we want
-   public static String convertInputData(byte[] receiveData, int numDataStreams, String output, Initializations config)
+   public static String convertInputData(byte[] receiveData, int numDataStreams, String output, Initializations config, Vector<Pair<Integer> > streamVector)
    {
+      Iterator<Pair<Integer> > streamVectorItr = streamVector.iterator();
+      Pair<Integer> nextDataIndex = streamVectorItr.next(); 
+      debugOut(""+numDataStreams);
       for (int dataGroup = 0; dataGroup<numDataStreams; ++dataGroup) //For each data stream
       {
+
          int xPlaneIndex = receiveData[5+36*dataGroup];
          debugOut("Index: " + xPlaneIndex);
+         if (nextDataIndex.getFirst() != xPlaneIndex) {
+            debugOut("Passing group #" + xPlaneIndex);
+            continue;
+         }
+
          for(int dataIndex=0; dataIndex<8; ++dataIndex)
          {
+            if (nextDataIndex.getSecond() != dataIndex){
+               debugOut("Passing Index #" + dataIndex);
+               continue;
+            }
+
             byte[] floatBytes = {receiveData[(36*dataGroup)+(4*dataIndex)+9], //Offset by 9 because of 5 byte data and 4 byte xPlaneIndex
                receiveData[(36*dataGroup)+(4*dataIndex)+10],
                receiveData[(36*dataGroup)+(4*dataIndex)+11],
@@ -70,16 +84,15 @@ class UDP_TCPConverter
             float convertedNumber = ByteBuffer.wrap(floatBytes).order(ByteOrder.LITTLE_ENDIAN).getFloat();
             output = (output + Float.toString(convertedNumber) + ",");
             debugOut("Float "+dataGroup+","+dataIndex+": " + convertedNumber);
+            if (!streamVectorItr.hasNext()) break; 
+            nextDataIndex = streamVectorItr.next();
          }
       }
       return output;
    }
 
    //Function to read in the list of data groups from the file specified by the user
-   //**Current issue is shown with current userSelections file. Since data output to file from xPlane doesn't actually separate 
-   // where there are spaces in the datastream, it will recognize later data streams as being in earlier data streams. 
-      //solution: write appropriate gaps into the sourceNames file should solve the problem. Additionally, source names needs to 
-      // be made with entire file of outputs to ensure all datastreams are there.
+   //** Issue in that not all data streams are contained in the file (some data streams are located where there are nulls)
    private static void readInGroupsList(Properties prop, Map<String, Pair<Integer> > dataGroups) throws Exception
    {
       //Read in the list of source data groups and indexes
@@ -104,7 +117,7 @@ class UDP_TCPConverter
             dataStreamName = dataStreamName.trim();// trim the whitespace
             Pair<Integer> groupAndIndex = new Pair<Integer>(intDataGroup,intDataIndex);
             dataGroups.put(dataStreamName, groupAndIndex);
-            debugOut(dataStreamName + " " + intDataGroup + " " + intDataIndex); //**
+            //debugOut(dataStreamName + " " + intDataGroup + " " + intDataIndex); 
             dataStreamName = new String();
             //If exceeded # of indexes in a group, increment group and reset index
             if (++intDataIndex == 8)
@@ -190,7 +203,6 @@ class UDP_TCPConverter
          while (userKeysItr.hasNext()) {
             key = userKeysItr.next();
             groupIndexPair = dataGroups.get((userStreams.getProperty(key)).trim());
-
             //Logic check to see if this element is lower than the current lowest. If so, set it as the lowest
             if ((lowestGroupIndexPair.getFirst() > groupIndexPair.getFirst())
             || (lowestGroupIndexPair.getFirst() == groupIndexPair.getFirst() && lowestGroupIndexPair.getSecond() > groupIndexPair.getSecond())){
@@ -209,12 +221,26 @@ class UDP_TCPConverter
             //Add it to the streamVector vector for picking which data to be written to the output in the convertData function
          streamVector.add(lowestGroupIndexPair);
          
+
          //Remove the current lowest value from the set so the next lowest value can be determined and reset the lowest tracker variables
          userKeys.remove(lowestGroupIndexPairString);
          userKeysItr = userKeys.iterator();
          lowestGroupIndexPair = null;
          lowestGroupIndexPairString = "";
       }
+
+      
+      debugOut("Sanity check of streamVector");
+      Iterator<Pair<Integer> > itr = streamVector.iterator();
+      while(itr.hasNext() && debug){
+         Pair<Integer> temp = itr.next();
+         debugOut("Item " + temp.getFirst() + " "+ temp.getSecond());
+      }
+      
+
+      System.out.println("Set the below dataGroups and ONLY the below for internet transfer for the selected data streams written into userSelections.ini");
+      Iterator<Integer> dataGroupNumsItr = dataGroupNums.iterator();
+      while(dataGroupNumsItr.hasNext()) System.out.println(dataGroupNumsItr.next());
 
       // debugOut("Header after creation in readInUserStreams: "+ header);
       Integer numberDataGroupsToRequest = dataGroupNums.size();
@@ -233,7 +259,6 @@ class UDP_TCPConverter
          config.filePath = Paths.get((config.filePath).toString() + "\\Sim_data0.txt");
          int fileNum = 1;
          while (Files.exists(config.filePath)){
-            debugOut("hit");
             int pathOffset = (config.filePath).toString().length()-5;
             double numOffset = -Math.floor(Math.log10(fileNum));
             String subStringFilePath = ((config.filePath).toString()).substring(0,pathOffset+(int)numOffset);
@@ -290,7 +315,7 @@ class UDP_TCPConverter
          String output = ft.format(date);
 
          //Convert data from X-Plane format to PILOTS Format
-         output = convertInputData(receiveData, numDataStreams, output, config);
+         output = convertInputData(receiveData, numDataStreams, output, config, streamVector);
 
          //Network, Debug, and file outputs
          debugOut(output);
