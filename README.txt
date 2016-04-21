@@ -9,6 +9,7 @@ i) edit your config file as desired
 3) write that same port from above into the "inputPort" field of the config.ini file.
 4) select on xPLane which of the data streams you want to write into PILOTS
 	a) Note the stream group # and the index position of the data stream within it.
+//below doesn't work because of header ordering
 5) write the header file in the userSelections.ini file in the order the data streams appear in PILOTS similar to the style (the data streams names at this time are irrelevant, what's relevant is the order is the same order as the xPlane data streams and the PILOTS variables are written as they appear in the PILOTS program)
 6) Hard code into the convertInputData function which data streams you would like to use based on the stream group # and index positions found in 4a.
 7) write the correct port for PILOTS into the config.ini file.
@@ -120,6 +121,12 @@ Next Steps:
 Create a full source names file with nulls included.
 
 Break down the main file into smaller files. 
+
+Use the real time from xPlane to feed the time into Pilots (since UDP isn't ordered, time stamp of the conversion program may artificially order the data)
+
+Control the frequency of the data sent to PILOTS. Possibly by setting a data frequency in the config.ini file.
+
+Implement Fred's data group requesting code. 
 
 Change the order that the PILOTS variables are written to the header to reflect xPlane's data ordering since that is the order in which it is processed and written into the output string. 
 Use the dataGroupNums to select which data streams to request from xPlane (via Fred's code) instead of having to do it manually. 

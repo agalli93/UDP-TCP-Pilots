@@ -155,7 +155,6 @@ class UDP_TCPConverter
       readInGroupsList(prop, dataGroups);
    }
 
-   //Finished if the header formats properly
    //broken until readInGroupsList problem is fixed.
    private static Integer readInUserStreams(StringBuilder header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
    {
@@ -168,25 +167,58 @@ class UDP_TCPConverter
       else throw new FileNotFoundException("Data Stream Selections file, " +fileName + ", not found in current directory");
       is.close();
 
-      // Declare set of strings that are the dataStreamUser names and a set of Integers to keep track of the unique dataGroups that will
-      // need to be requested from X-Plane.
+      // Declare set of strings that are the dataStreams wanted by the user
       Set<String> userKeys = userStreams.stringPropertyNames();
       Iterator<String> userKeysItr = userKeys.iterator();
 
-      // Get the keys from the file, put them in the header, then get their dataGroup/dataIndex and store them
-      while (userKeysItr.hasNext()) {
+      //Tracker variables for sorting the header and the streamVector.
+      Pair<Integer> lowestGroupIndexPair = null;
+      String lowestGroupIndexPairString = "";
+
+      // Nested while loop to reorder the header in the order that the data will come from xPlane so the converter function will write it 
+      // in the proper order. Necessary because properties library function stringPropertyNames will only return a set and sets are unordered. 
+      
+      //While there are still items left in the set of dataStreams
+      while (userKeysItr.hasNext()){
+         //Take the next one and set it as the current lowest
          String key = userKeysItr.next();
-         //Add the key to the header file
-         header.append(key + ',');
-         //Retreive the dG/dI pair, store the data group to track of unique dataGroups needed
-         Pair<Integer> groupIndexPair = dataGroups.get(userStreams.getProperty(key));
-         debugOut(userStreams.getProperty(key)+ "--Group #:" +groupIndexPair.getFirst() + " --Index#:" + groupIndexPair.getSecond());
-         dataGroupNums.add(groupIndexPair.getFirst()); 
-         streamVector.add(groupIndexPair);
+         Pair<Integer> groupIndexPair = dataGroups.get(userStreams.getProperty(key).trim());
+         lowestGroupIndexPair = groupIndexPair;
+         lowestGroupIndexPairString = key;
+
+         //iterate through the rest of the set to find the next lowest element in terms of dataGroup # and then dataIndex # 
+         while (userKeysItr.hasNext()) {
+            key = userKeysItr.next();
+            groupIndexPair = dataGroups.get((userStreams.getProperty(key)).trim());
+
+            //Logic check to see if this element is lower than the current lowest. If so, set it as the lowest
+            if ((lowestGroupIndexPair.getFirst() > groupIndexPair.getFirst())
+            || (lowestGroupIndexPair.getFirst() == groupIndexPair.getFirst() && lowestGroupIndexPair.getSecond() > groupIndexPair.getSecond())){
+               lowestGroupIndexPair = groupIndexPair;
+               lowestGroupIndexPairString = key;
+            }
+         }
+
+         debugOut(userStreams.getProperty(lowestGroupIndexPairString)+ "--Group #:" +lowestGroupIndexPair.getFirst() + " --Index#:" + lowestGroupIndexPair.getSecond());
+         
+         //Since the current element in the lowestGroupIndexPairString has been determined to be the next lowest, 
+            //Add it to the initial header line sent to PILTOS
+         header.append(lowestGroupIndexPairString + ',');
+            //Add it to the dataGroupNums set to be used for requesting dataStreams from xPlane
+         dataGroupNums.add(lowestGroupIndexPair.getFirst()); 
+            //Add it to the streamVector vector for picking which data to be written to the output in the convertData function
+         streamVector.add(lowestGroupIndexPair);
+         
+         //Remove the current lowest value from the set so the next lowest value can be determined and reset the lowest tracker variables
+         userKeys.remove(lowestGroupIndexPairString);
+         userKeysItr = userKeys.iterator();
+         lowestGroupIndexPair = null;
+         lowestGroupIndexPairString = "";
       }
+
       // debugOut("Header after creation in readInUserStreams: "+ header);
-      Integer numDataStreams = dataGroupNums.size();
-      return numDataStreams;
+      Integer numberDataGroupsToRequest = dataGroupNums.size();
+      return numberDataGroupsToRequest;
    }
 
    public static void main(String args[]) throws Exception
