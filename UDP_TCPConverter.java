@@ -46,6 +46,8 @@ class UDP_TCPConverter
       public InetAddress outputIP;
       public int outputPort;
       public boolean writeToTCP;
+      public InetAddress xPlaneIP;
+      public int xPlanePort;
 
       //Debug options set globally for ease of programming
    }
@@ -159,6 +161,8 @@ class UDP_TCPConverter
       config.inputPort = Integer.parseInt(prop.getProperty("network.inputPort"));
       config.outputIP = InetAddress.getByName(prop.getProperty("network.outputIP"));
       config.outputPort = Integer.parseInt(prop.getProperty("network.outputPort"));
+      config.xPlaneIP = InetAddress.getByName(prop.getProperty("network.xPlaneIP"));
+      config.xPlanePort = Integer.parseInt(prop.getProperty("network.xPlanePort"));
 
       if (prop.getProperty("debug.consoleOutput").equals("true")) debug = true;
       else debug = false;
@@ -250,22 +254,50 @@ class UDP_TCPConverter
       return numberDataGroupsToRequest;
    }
 
+   //This function sends a command to xPlane to unselect all of the currently selected datastreams for transmission
+   public static void deselectAllDataStreams(Initializations config) throws Exception{   
+      //Create the byte array to send with the command USEL0 (unselect the following)
+      byte[] fullCommand = new byte[(132 * 4) + 5];
+      fullCommand[0] = (byte) 85; //U
+      fullCommand[1] = (byte) 83; //S
+      fullCommand[2] = (byte) 69; //E
+      fullCommand[3] = (byte) 76; //L
+      fullCommand[4] = (byte) 48; //0
+         
+      //For all of the data streams (132 of them,) convert them into bytes and insert them into the byte array to be sent to xPlane to deselect
+      for(int x = 0; x < 132; x++)
+      {      
+         //Ints are 4 bytes long, allocate 4 bytes of space for conversion.
+         ByteBuffer bb = ByteBuffer.allocate(4);
+         bb.order(ByteOrder.LITTLE_ENDIAN);
+         debugOut("CONVERTING: " + x);
+         bb.putInt(x);
+         //for each byte in converted in the buffer, insert it into the command to be sent to xPlane
+         for(int y = 0; y < 4; y++)
+            fullCommand[(x * 4) + 5 + y] = bb.get(y);
+      }
+
+      // Create the socket and packet to be sent to xPlane and send it 
+      DatagramSocket xPlaneSocket = new DatagramSocket();
+      DatagramPacket sendPacket = new DatagramPacket(fullCommand, fullCommand.length, config.xPlaneIP, config.xPlanePort);
+      xPlaneSocket.send(sendPacket);
+      debugOut("Deselections Sent");
+   }
+
    public static void main(String args[]) throws Exception
    {
       Map<String, Pair<Integer> > dataGroups = new HashMap<String, Pair<Integer> >();
       Initializations config = new Initializations();
       init(config, dataGroups);
+      deselectAllDataStreams(config);
 
-      debugOut("Test1");
       //Create a new file to store the data taken in by the server
       if(config.recordData)
       {
-         debugOut("Test");
          config.filePath = Paths.get((config.filePath).toString() + "/Sim_data0.txt");
          debugOut(config.filePath.toString());
          int fileNum = 1;
          while (Files.exists(config.filePath)){
-            debugOut("hit");
             int pathOffset = (config.filePath).toString().length()-5;
             double numOffset = -Math.floor(Math.log10(fileNum));
             String subStringFilePath = ((config.filePath).toString()).substring(0,pathOffset+(int)numOffset);

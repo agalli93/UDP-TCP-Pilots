@@ -3,21 +3,17 @@ Readme File
 This program is the PILOTS UDP to TCP converter for use with xPlane 9.0 and other versions with modifications. It is designed to receive data from xPLane over UDP, convert that data into a PILOTS readable format, and then send it to PILOTS over TCP.
 
 Current steps to use the software:
-i) edit your config file as desired
 1) Determine your local IP address. 
-2) input that IP address into xPlane and the port which you specify 
+2) input that IP address into xPlane and the port which you specify (Settings->Net Connections->Advanced->IP for Data Output)
 3) write that same port from above into the "inputPort" field of the config.ini file.
-4) select on xPLane which of the data streams you want to write into PILOTS
-	a) Note the stream group # and the index position of the data stream within it.
-//below doesn't work because of header ordering
-5) write the header file in the userSelections.ini file in the order the data streams appear in PILOTS similar to the style (the data streams names at this time are irrelevant, what's relevant is the order is the same order as the xPlane data streams and the PILOTS variables are written as they appear in the PILOTS program)
-6) Hard code into the convertInputData function which data streams you would like to use based on the stream group # and index positions found in 4a.
-7) write the correct port for PILOTS into the config.ini file.
-8) initialize PILOTS and run the UDP_TCPConverter. 
+4) initialize PILOTS and run the UDP_TCPConverter. 
+5) Upon the prompt of which data streams to select, go to Settings->Data Input & Output, and select those data streams as directed
+6) Press any key to run the converter
 
-Future steps to use software:
+Future steps to use software: (remove step 5)
 1) Determine your local IP address. 
-2) input that IP address into xPlane and the port which you specify 
+2) input that IP address into xPlane and the port which you specify
+3) Set the output port on (Settings->Net Connections-> UDP Port) 
 3) write that same port from above into the "inputPort" field of the config.ini file.
 4) write the PILOTS data streams equal to their xPlane counterpart in the userSelections.ini file.
 5) initialize PILOTS and run the UDP_TCPConverter. 
@@ -42,6 +38,8 @@ sourceNames.txt
 
 This is the file used to tell the Parser what are the data stream names from xPlane and their dataGroup/dataIndex locations. This file will be a one time generation and never changed unless a different xPLane input is used. In addition, if "null" strings where there are gaps in the data are not inserted, the dataGroup/dataIndex locations will be off and not be correct for future use. 
 
+For now, each aircraft will require it's own sourceNames.txt file as all of the data stream names are not present for each aircraft. The indexes do not change cross aircraft, so a proper merging function is written to create one sourceNames.txt would solve this issue. For instance, a B52 will have a throttle_8 setting while a Cessna 172 will only have a throttle_1 setting. 
+
 Functions: 
 
 public static String convertInputData(byte[] receiveData, int numDataStreams, String output, Initializations config)
@@ -54,8 +52,6 @@ public static String convertInputData(byte[] receiveData, int numDataStreams, St
 
 	This function is used to take the incoming data from xPlane and the convert it from a byte array representing a float (in little endian) to a float in the form of a string
 
-	future work: select which data streams to write to output based on user selected input from userSelections.ini after being parsed. 
-
 ===
 
 private static void readInGroupsList(Properties prop, Map<String, Pair<Integer> > dataGroups) throws Exception
@@ -66,8 +62,6 @@ private static void readInGroupsList(Properties prop, Map<String, Pair<Integer> 
 			Pair<Integer>: data Group, data index location pair.
 
 	This function is used to read in the data stream names and determine their data group/data index numbers. This requires a full dataGroups file without any gaps of streams, there can't be a missing data group inbetween since the parser relies on them being sequential to determine their index number. 
-
-	future work: currently doesn't work since the sourceNames.txt file doesn't insert the gaps that are still sent over UDP. Gaps need to be inserted with "null" or another string. 
 
 ===
 
@@ -92,7 +86,15 @@ private static Integer readInUserStreams(StringBuilder header, Map<String, Pair<
 
 	This function takes in the userSelections.ini file and reads in the PILOTS specified data streams to create a header string of them, and the xPlane data streams they're equal to, to determine which dataGroup/dataIndex pairs are required to be read and written into PILOTS. Care should be taken after the future work is implemented to ensure to the order that these are output since currently they're output in the order of the data stream as dictated by the for loop in convertInputData. Currently it would be necessary to ensure that either: the header is reordered to reflect the dataGroup/dataIndex list numerically, or the user must write the userSelections.ini file in the order of the xPlane dataGroups/dataIndexes. 
 
-	future work: use the dataGroupNums to select which data to request from xPlane (via Fred's code). Use the streamVector pairs to determine which data streams to keep and which to throw out. Change the order that the PILOTS variables are written to the header to reflect xPlane's data ordering since that is the order in which it is processed and written into the output string. 
+	future work: use the dataGroupNums to select which data to request from xPlane (via Fred's code). 
+
+===
+
+public static void deselectAllDataStreams(Initializations config) throws Exception
+	parameters: 
+		Intitializations config: class with config data 
+
+	This basic function runs after the initialization and clears all of the currently selected data streams set by xPlane for transmission. For this function to work, it is required that the user correctly input the IP address of the xPlane computer and the port over which they will receive the data. The port can be set in "Settings -> Net Connections -> UDP Port -> port that we receive on"
 
 ===
 
@@ -118,8 +120,6 @@ public static void main(String args[]) throws Exception
 
 Next Steps:
 
-Create a full source names file with nulls included.
-
 Break down the main file into smaller files. 
 
 Use the real time from xPlane to feed the time into Pilots (since UDP isn't ordered, time stamp of the conversion program may artificially order the data)
@@ -128,10 +128,7 @@ Control the frequency of the data sent to PILOTS. Possibly by setting a data fre
 
 Implement Fred's data group requesting code. 
 
-Change the order that the PILOTS variables are written to the header to reflect xPlane's data ordering since that is the order in which it is processed and written into the output string. 
 Use the dataGroupNums to select which data streams to request from xPlane (via Fred's code) instead of having to do it manually. 
-Use the streamVector pairs to determine which data streams to write to the output instead of having to currently hard code it. 
-
 
 
 URLs Used
