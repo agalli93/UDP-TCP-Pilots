@@ -40,7 +40,6 @@ For now, the requirement is each aircraft will require it's own `sourceNames.txt
 
 #Functions: 
 
-
 ###public static String convertInputData(byte[] receiveData, int numDataStreams, String output, Initializations config, Vector<Pair<Integer> > streamVector)
 
 This function is used to take the incoming data from xPlane and the convert it from a byte array representing a float (in little endian) to a float in the form of a string
@@ -68,15 +67,15 @@ class to be referenced by the entire program.
 * **config {Initializations}** the passed in config file variables class
 * **dataGroups {Map\<String, Pair\<Integer> >}** map of the dataGroups written by xPlane from the readInGroupsList
 
-###private static void readInUserStreams(StringBuilder header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
+###private static void readInUserStreams(Initializations config, StringBuilder header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
 
 This function takes in `userSelections.ini` and reads in the PILOTS specified data streams to create a header string of them, and the xPlane data streams they're equal to, to determine which dataGroup/dataIndex pairs are required to be read and written into PILOTS. 
 
+* **config {Initializations}** the passed in config file variables class
 * **header {StringBuilder}** header string that will be the first packet sent to PILOTS
 * **dataGroups {Map\<String, Pair\<Integer> >}** map of the dataGroups written by xPlane from the readInGroupsList
 * **streamVector {Vector\<Pair\<Integer> >}**: vector of the dataGroup/dataIndex pairs, determined by the readIngroupsList, and selected in `userSelections.ini`.
 * **dataGroupNums {Set\<Integer>}** set of the dataGroups that are required by the streamVector.
-
 
 ###public static void deselectAllDataStreams(Initializations config) throws Exception
 

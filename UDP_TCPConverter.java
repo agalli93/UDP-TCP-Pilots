@@ -49,6 +49,8 @@ class UDP_TCPConverter
       public InetAddress xPlaneIP;
       public int xPlanePort;
 
+      public String userSelections;
+
       //Debug options set globally for ease of programming
    }
 
@@ -164,6 +166,8 @@ class UDP_TCPConverter
       config.xPlaneIP = InetAddress.getByName(prop.getProperty("network.xPlaneIP"));
       config.xPlanePort = Integer.parseInt(prop.getProperty("network.xPlanePort"));
 
+      config.userSelections = prop.getProperty("selections.source");
+
       if (prop.getProperty("debug.consoleOutput").equals("true")) debug = true;
       else debug = false;
 
@@ -174,15 +178,14 @@ class UDP_TCPConverter
    }
 
    //broken until readInGroupsList problem is fixed.
-   private static void readInUserStreams(StringBuilder header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
+   private static void readInUserStreams(Initializations config, StringBuilder header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
    {
       //Load user selected data stream file
       Properties userStreams = new Properties();
-      String fileName = "userSelections.ini"; //**Might want to make this a command line arg or put it in the config file
-      InputStream is = new FileInputStream(fileName);
+      InputStream is = new FileInputStream(config.userSelections);
       //Error check to make sure file exists
       if (is != null) userStreams.load(is);
-      else throw new FileNotFoundException("Data Stream Selections file, " +fileName + ", not found in current directory");
+      else throw new FileNotFoundException("Data Stream Selections file, " + config.userSelections+ ", not found in current directory");
       is.close();
 
       // Declare set of strings that are the dataStreams wanted by the user
@@ -216,7 +219,8 @@ class UDP_TCPConverter
             }
          }
 
-         debugOut(userStreams.getProperty(lowestGroupIndexPairString)+ "--Group #:" +lowestGroupIndexPair.getFirst() + " --Index#:" + lowestGroupIndexPair.getSecond());
+         debugOut(userStreams.getProperty(lowestGroupIndexPairString)+ "--Group #:" +lowestGroupIndexPair.getFirst() + " --Index#:" + lowestGroupIndexPair.getSecond() 
+            + " --PILOTS Name: " + lowestGroupIndexPairString);
          
          //Since the current element in the lowestGroupIndexPairString has been determined to be the next lowest, 
             //Add it to the initial header line sent to PILTOS
@@ -244,10 +248,10 @@ class UDP_TCPConverter
          debugOut("Item " + temp.getFirst() + " "+ temp.getSecond());
       }
       
-
-      System.out.println("Set the below dataGroups and ONLY the below for internet transfer for the selected data streams written into userSelections.ini");
-      Iterator<Integer> dataGroupNumsItr = dataGroupNums.iterator();
-      while(dataGroupNumsItr.hasNext()) System.out.println(dataGroupNumsItr.next());
+      // Below was necessary when transmissions to xPlane were partially functional kept it as a good sanity check
+      // System.out.println("Set the below dataGroups and ONLY the below for internet transfer for the selected data streams written into userSelections.ini");
+      // Iterator<Integer> dataGroupNumsItr = dataGroupNums.iterator();
+      // while(dataGroupNumsItr.hasNext()) System.out.println(dataGroupNumsItr.next());
    }
 
    //Sends a command to xPlane to unselect all of the currently selected datastreams for transmission
@@ -266,7 +270,6 @@ class UDP_TCPConverter
          //Ints are 4 bytes long, allocate 4 bytes of space for conversion.
          ByteBuffer bb = ByteBuffer.allocate(4);
          bb.order(ByteOrder.LITTLE_ENDIAN);
-         debugOut("Clearing: " + x);
          bb.putInt(x);
          //for each byte in converted in the buffer, insert it into the command to be sent to xPlane
          for(int y = 0; y < 4; y++)
@@ -340,7 +343,7 @@ class UDP_TCPConverter
       StringBuilder headerSb = new StringBuilder("#"); //Instantiated for the function
       Vector<Pair<Integer> > streamVector = new Vector<Pair<Integer> >(); // Vector of <dG,dI>'s requested by user
       Set<Integer> dataGroupNums = new HashSet<Integer>(); // a Set keeping record of unique data groups needed to pull (verified)
-      readInUserStreams(headerSb, dataGroups, streamVector, dataGroupNums);
+      readInUserStreams(config, headerSb, dataGroups, streamVector, dataGroupNums);
       String header = headerSb.substring(0,headerSb.length()-1); // Removes hanging comma
       debugOut("Header Test--" + header);
 
