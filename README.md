@@ -41,7 +41,7 @@ For now, the requirement is each aircraft will require it's own `sourceNames.txt
 #Functions: 
 
 
-###public static String convertInputData(byte[] receiveData, int numDataStreams, String output, Initializations config)
+###public static String convertInputData(byte[] receiveData, int numDataStreams, String output, Initializations config, Vector<Pair<Integer> > streamVector)
 
 This function is used to take the incoming data from xPlane and the convert it from a byte array representing a float (in little endian) to a float in the form of a string
 
@@ -49,6 +49,7 @@ This function is used to take the incoming data from xPlane and the convert it f
 * **numDataStreams {int}** the number of datastreams that are being sent by xPlane 
 * **output {String}** this is the string output that will go to PILOTS
 * **config {Initializations}** the passed in config file variables class
+* **streamVector {Vector\<Pair\<Integer> >}**: vector of the dataGroup/dataIndex pairs, determined by the readIngroupsList, and selected in `userSelections.ini`.
 
 * **return {String}** output to Pilots
 

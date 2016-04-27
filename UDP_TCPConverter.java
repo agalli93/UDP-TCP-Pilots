@@ -250,6 +250,36 @@ class UDP_TCPConverter
       while(dataGroupNumsItr.hasNext()) System.out.println(dataGroupNumsItr.next());
    }
 
+   //Sends a command to xPlane to unselect all of the currently selected datastreams for transmission
+   public static void deselectAllDataStreams(Initializations config) throws Exception{   
+      //Create the byte array to send with the command USEL0 (unselect the following)
+      byte[] fullCommand = new byte[(132 * 4) + 5];
+      fullCommand[0] = (byte) 85; //U
+      fullCommand[1] = (byte) 83; //S
+      fullCommand[2] = (byte) 69; //E
+      fullCommand[3] = (byte) 76; //L
+      fullCommand[4] = (byte) 48; //0
+         
+      //For all of the data streams (132 of them,) convert their indexes into bytes and insert them into the byte array to be sent to xPlane to deselect
+      for(int x = 0; x < 132; x++)
+      {      
+         //Ints are 4 bytes long, allocate 4 bytes of space for conversion.
+         ByteBuffer bb = ByteBuffer.allocate(4);
+         bb.order(ByteOrder.LITTLE_ENDIAN);
+         debugOut("Clearing: " + x);
+         bb.putInt(x);
+         //for each byte in converted in the buffer, insert it into the command to be sent to xPlane
+         for(int y = 0; y < 4; y++)
+            fullCommand[(x * 4) + 5 + y] = bb.get(y);
+      }
+
+      // Create the socket and packet to be sent to xPlane and send it 
+      DatagramSocket xPlaneSocket = new DatagramSocket();
+      DatagramPacket sendPacket = new DatagramPacket(fullCommand, fullCommand.length, config.xPlaneIP, config.xPlanePort);
+      xPlaneSocket.send(sendPacket);
+      debugOut("Deselections Sent");
+   }
+
    //Takes in the data groups requested by the user via the userSelections.ini and requests them from xPlane
    public static void selectRequestedStreams(Initializations config, Set<Integer> dataGroupNums) throws Exception{
       //Create the byte array with size of the num of data groups
@@ -280,36 +310,6 @@ class UDP_TCPConverter
       DatagramPacket sendPacket = new DatagramPacket(fullCommand, fullCommand.length, config.xPlaneIP, config.xPlanePort);
       xPlaneSocket.send(sendPacket);
       debugOut("Selections Sent");   
-   }
-
-   //Sends a command to xPlane to unselect all of the currently selected datastreams for transmission
-   public static void deselectAllDataStreams(Initializations config) throws Exception{   
-      //Create the byte array to send with the command USEL0 (unselect the following)
-      byte[] fullCommand = new byte[(132 * 4) + 5];
-      fullCommand[0] = (byte) 85; //U
-      fullCommand[1] = (byte) 83; //S
-      fullCommand[2] = (byte) 69; //E
-      fullCommand[3] = (byte) 76; //L
-      fullCommand[4] = (byte) 48; //0
-         
-      //For all of the data streams (132 of them,) convert their indexes into bytes and insert them into the byte array to be sent to xPlane to deselect
-      for(int x = 0; x < 132; x++)
-      {      
-         //Ints are 4 bytes long, allocate 4 bytes of space for conversion.
-         ByteBuffer bb = ByteBuffer.allocate(4);
-         bb.order(ByteOrder.LITTLE_ENDIAN);
-         debugOut("Clearing: " + x);
-         bb.putInt(x);
-         //for each byte in converted in the buffer, insert it into the command to be sent to xPlane
-         for(int y = 0; y < 4; y++)
-            fullCommand[(x * 4) + 5 + y] = bb.get(y);
-      }
-
-      // Create the socket and packet to be sent to xPlane and send it 
-      DatagramSocket xPlaneSocket = new DatagramSocket();
-      DatagramPacket sendPacket = new DatagramPacket(fullCommand, fullCommand.length, config.xPlaneIP, config.xPlanePort);
-      xPlaneSocket.send(sendPacket);
-      debugOut("Deselections Sent");
    }
 
    public static void main(String args[]) throws Exception
@@ -399,12 +399,6 @@ class UDP_TCPConverter
    }
 }
 /*
-Current problem is that when the byte array is written into the file, all 1024 bytes are written, regardless of their value. Need to find a way
-to determine how many bytes to actually record. X-plane might have a limit so we could just use that. For now, possibly binary searching the last
-bit.
--Potentially Solved, limit is 41 bytes I seem to have found
--Potentially Not solved, limit could change with number of data outputs set in X-Plane, requires further testing
-
 Input format is:
 int Index //index of the list of variables
 float data[8]//up to the 8 numbers output on the screen, not all 8 will be used
@@ -413,6 +407,4 @@ First 5 bytes are the Identifier (eg. DATA) (fifth bit is insignificant)
 Second 4 bytes is the index as an int
 After, 8 4-byte segments are the data outputs in floating point notation
 int and float pattern will repeat for as many data outputs were set
-
-Careful reading/sending data and converting it because it might need to be char 0 not int 0
 */
