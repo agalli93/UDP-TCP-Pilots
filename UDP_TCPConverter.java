@@ -1,3 +1,4 @@
+package pilots.util.xplane;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -147,7 +148,7 @@ class UDP_TCPConverter
    {
       //Read in the config file
       Properties prop = new Properties();
-      String fileName = "config.ini";
+      String fileName = "pilots/util/xplane/config.ini";
       InputStream is = new FileInputStream(fileName);
 
       if (is != null) prop.load(is);
