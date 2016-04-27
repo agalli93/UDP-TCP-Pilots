@@ -7,7 +7,7 @@ This program is the UDP to TCP Converter for xPlane and PILOTS for use with xPla
 
 1. Determine your local IP address. 
 2. Input your IP address into xPlane and a port of your choosing (the input port into the converter, `network.inputPort` in `config.ini`) which you specify (Settings->Net Connections->Advanced->IP for Data Output) 
-3. Set the xPlane input port on (Settings->Net Connections-> UDP Port) (`xPlanePort` in the `config.ini`)
+3. Set the xPlane input port on (Settings->Net Connections-> UDP Port) (`network.xPlanePort` in the `config.ini`)
 4. Write the PILOTS data streams equal to their xPlane counterpart in `userSelections.ini`.
 5. Initialize PILOTS and run the UDP_TCPConverter. 
 6. Done!
