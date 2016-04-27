@@ -93,7 +93,7 @@ This function takes the data Group Numbers that were determed by the readInUserS
 ###Main
 Reads in the `config.ini` file and processes the configs
 
-Create a new file to store the data taken in by the server
+if record to file: Create a new file to store the data taken in by the server
 
 Build the pilots header by reading in the user selected data streams
 
@@ -107,11 +107,11 @@ If the user specified to record the data, write the header to the file
 
 while true:
 
-* receive data from xPLane
+* receive data from xPlane
 * timestamp it
 * convert the input data
 * if record: write the data to file
-* if write to TCP: send over TCP
+* if write to TCP: send over TCP to PILOTS
 
 
 #Future Work:
@@ -124,19 +124,31 @@ Control the frequency of the data sent to PILOTS. Possibly by setting a data fre
 
 create multiple sourceNames.txt files for multiple aircraft or merge them all into one comprehensive sourceNames file or determine how to get all of the index Names. 
 
+#References
 
-URLs Used
+###Java References:
+
 http://systembash.com/content/a-simple-java-udp-server-and-udp-client/
+
 http://systembash.com/content/a-simple-java-tcp-server-and-tcp-client/
+
 http://docs.oracle.com/javase/tutorial/essential/io/file.html#creating
+
 http://docs.oracle.com/javase/8/docs/api/java/nio/file/StandardOpenOption.html
+
 http://stackoverflow.com/questions/13469681/how-to-convert-4-bytes-array-to-float-in-java //converting function I used
 
+###xPlane UDP References
 http://www.nuclearprojects.com/xplane/info.shtml
+
 http://www.jefflewis.net/XPlaneUDP_9.html
+
 http://www.nuclearprojects.com/xplane/xplaneref.html
+
 http://www.scadacore.com/field-applications/miscellaneous/online-hex-converter.html //testing of conversion with hex
 
-Config File URLs
+###Config File URLs
+
 http://stackoverflow.com/questions/1925305/best-config-file-format
+
 http://www.gnu.org/prep/standards/html_node/Configuration.html
