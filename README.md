@@ -12,6 +12,8 @@ This program is the UDP to TCP Converter for xPlane and PILOTS for use with xPla
 5. Initialize PILOTS and run the UDP_TCPConverter. 
 6. Done!
 
+Note: For testing of the TCP output/UDP Input, there are files in the sub directory of `UDP and TCP Testing` that can be used for testing. UDP Input may be difficult since you would have to replicate the format of xPlane but TCP testing is easy just to ensure you're receivng the data.
+
 #Files: 
 
 ###UDP_TCPConvterter.java
