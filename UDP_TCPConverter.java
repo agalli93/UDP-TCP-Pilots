@@ -174,7 +174,7 @@ class UDP_TCPConverter
    }
 
    //broken until readInGroupsList problem is fixed.
-   private static Integer readInUserStreams(StringBuilder header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
+   private static void readInUserStreams(StringBuilder header, Map<String, Pair<Integer> > dataGroups, Vector<Pair<Integer> > streamVector, Set<Integer> dataGroupNums) throws Exception
    {
       //Load user selected data stream file
       Properties userStreams = new Properties();
@@ -248,13 +248,41 @@ class UDP_TCPConverter
       System.out.println("Set the below dataGroups and ONLY the below for internet transfer for the selected data streams written into userSelections.ini");
       Iterator<Integer> dataGroupNumsItr = dataGroupNums.iterator();
       while(dataGroupNumsItr.hasNext()) System.out.println(dataGroupNumsItr.next());
-
-      // debugOut("Header after creation in readInUserStreams: "+ header);
-      Integer numberDataGroupsToRequest = dataGroupNums.size();
-      return numberDataGroupsToRequest;
    }
 
-   //This function sends a command to xPlane to unselect all of the currently selected datastreams for transmission
+   //Takes in the data groups requested by the user via the userSelections.ini and requests them from xPlane
+   public static void selectRequestedStreams(Initializations config, Set<Integer> dataGroupNums) throws Exception{
+      //Create the byte array with size of the num of data groups
+      byte[] fullCommand = new byte[(dataGroupNums.size() * 4) + 5];
+      fullCommand[0] = (byte) 68; //D
+      fullCommand[1] = (byte) 83; //S
+      fullCommand[2] = (byte) 69; //E
+      fullCommand[3] = (byte) 76; //L
+      fullCommand[4] = (byte) 48; //0
+
+      //For each data group, convert it's number to bytes and insert it in the byte array
+      Iterator<Integer> itr = dataGroupNums.iterator();
+      for(int x = 0; x < dataGroupNums.size(); x++)
+      {      
+         //Allocate 4 bytes of space for the conversion
+         int dataGroupNumber = itr.next();   
+         ByteBuffer bb = ByteBuffer.allocate(4);
+         bb.order(ByteOrder.LITTLE_ENDIAN);
+         debugOut("Setting stream: " + dataGroupNumber);
+         bb.putInt(dataGroupNumber);
+
+         for(int y = 0; y < 4; y++)
+            fullCommand[(x * 4) + 5 + y] = bb.get(y);
+      }
+
+      //Take the byte array and send it to xPlane
+      DatagramSocket xPlaneSocket = new DatagramSocket();
+      DatagramPacket sendPacket = new DatagramPacket(fullCommand, fullCommand.length, config.xPlaneIP, config.xPlanePort);
+      xPlaneSocket.send(sendPacket);
+      debugOut("Selections Sent");   
+   }
+
+   //Sends a command to xPlane to unselect all of the currently selected datastreams for transmission
    public static void deselectAllDataStreams(Initializations config) throws Exception{   
       //Create the byte array to send with the command USEL0 (unselect the following)
       byte[] fullCommand = new byte[(132 * 4) + 5];
@@ -264,13 +292,13 @@ class UDP_TCPConverter
       fullCommand[3] = (byte) 76; //L
       fullCommand[4] = (byte) 48; //0
          
-      //For all of the data streams (132 of them,) convert them into bytes and insert them into the byte array to be sent to xPlane to deselect
+      //For all of the data streams (132 of them,) convert their indexes into bytes and insert them into the byte array to be sent to xPlane to deselect
       for(int x = 0; x < 132; x++)
       {      
          //Ints are 4 bytes long, allocate 4 bytes of space for conversion.
          ByteBuffer bb = ByteBuffer.allocate(4);
          bb.order(ByteOrder.LITTLE_ENDIAN);
-         debugOut("CONVERTING: " + x);
+         debugOut("Clearing: " + x);
          bb.putInt(x);
          //for each byte in converted in the buffer, insert it into the command to be sent to xPlane
          for(int y = 0; y < 4; y++)
@@ -289,8 +317,7 @@ class UDP_TCPConverter
       Map<String, Pair<Integer> > dataGroups = new HashMap<String, Pair<Integer> >();
       Initializations config = new Initializations();
       init(config, dataGroups);
-      deselectAllDataStreams(config);
-
+      
       //Create a new file to store the data taken in by the server
       if(config.recordData)
       {
@@ -313,7 +340,7 @@ class UDP_TCPConverter
       StringBuilder headerSb = new StringBuilder("#"); //Instantiated for the function
       Vector<Pair<Integer> > streamVector = new Vector<Pair<Integer> >(); // Vector of <dG,dI>'s requested by user
       Set<Integer> dataGroupNums = new HashSet<Integer>(); // a Set keeping record of unique data groups needed to pull (verified)
-      numDataStreams = readInUserStreams(headerSb, dataGroups, streamVector, dataGroupNums);
+      readInUserStreams(headerSb, dataGroups, streamVector, dataGroupNums);
       String header = headerSb.substring(0,headerSb.length()-1); // Removes hanging comma
       debugOut("Header Test--" + header);
 
@@ -325,6 +352,10 @@ class UDP_TCPConverter
       Scanner in = new Scanner(System.in);
       System.out.println("Ready to transmit?");
       in.nextLine();
+
+      //Deselect all datastreams from xPlane currently selected for transmission and select the currently selected ones set by the user in userSelecitons.ini
+      deselectAllDataStreams(config);
+      selectRequestedStreams(config, dataGroupNums);
 
       DataOutputStream outToServer = null;
       String outputHeader = (header.toString() + '\n');
@@ -346,7 +377,7 @@ class UDP_TCPConverter
       while(true)
       {
          //Begin Reciving Data over UDP
-         byte[] receiveData = new byte[41+36*(numDataStreams-1)]; //Number of bytes represents size of buffer in chars
+         byte[] receiveData = new byte[41+36*(dataGroupNums.size()-1)]; //Number of bytes represents size of buffer in chars
          DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
          serverSocket.receive(receivePacket);
          //End Receivng data over UDP
@@ -356,7 +387,7 @@ class UDP_TCPConverter
          String output = ft.format(date);
 
          //Convert data from X-Plane format to PILOTS Format
-         output = convertInputData(receiveData, numDataStreams, output, config, streamVector);
+         output = convertInputData(receiveData, dataGroupNums.size(), output, config, streamVector);
 
          //Network, Debug, and file outputs
          debugOut(output);

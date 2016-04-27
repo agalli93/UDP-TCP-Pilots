@@ -1,20 +1,12 @@
-Readme File
+UDP to TCP Converter for xPlane and PILOTS
 
-This program is the PILOTS UDP to TCP converter for use with xPlane 9.0 and other versions with modifications. It is designed to receive data from xPLane over UDP, convert that data into a PILOTS readable format, and then send it to PILOTS over TCP.
+This program is the UDP to TCP Converter for xPlane and PILOTS for use with xPlane 9.0 and other versions with modifications, and the PILOTS programming language developed by the Worldwide Computing Lab at Rensselaer Polytechnic Institute. It is designed to receive data from xPLane over UDP, convert that data into a PILOTS readable format, and then send it to PILOTS over TCP.
 
 Current steps to use the software:
-1) Determine your local IP address. 
-2) input that IP address into xPlane and the port which you specify (Settings->Net Connections->Advanced->IP for Data Output)
-3) write that same port from above into the "inputPort" field of the config.ini file.
-4) initialize PILOTS and run the UDP_TCPConverter. 
-5) Upon the prompt of which data streams to select, go to Settings->Data Input & Output, and select those data streams as directed
-6) Press any key to run the converter
 
-Future steps to use software: (remove step 5)
 1) Determine your local IP address. 
-2) input that IP address into xPlane and the port which you specify
-3) Set the output port on (Settings->Net Connections-> UDP Port) 
-3) write that same port from above into the "inputPort" field of the config.ini file.
+2) Input your IP address into xPlane and a port of your choosing (the input port into the converter, "network.inputPort" in the config.ini) which you specify (Settings->Net Connections->Advanced->IP for Data Output) 
+3) Set the xPlane input port on (Settings->Net Connections-> UDP Port) ("xPlanePort" in the config.ini)
 4) write the PILOTS data streams equal to their xPlane counterpart in the userSelections.ini file.
 5) initialize PILOTS and run the UDP_TCPConverter. 
 
@@ -28,7 +20,7 @@ future work: This probably should be broken into smaller files.
 
 userSelections.ini
 
-This file contains the user's selections for datastreams to be used in PILOTS and the ones requested from xPlane. Care should be taken after the future work is implemented to ensure to the order that these are output since currently they're output in the order of the data stream as dictated by the for loop in convertInputData.
+This file contains the user's selections for datastreams to be used in PILOTS and the ones requested from xPlane. 
 
 config.ini
 
@@ -36,9 +28,13 @@ This is the config file the user will use to specify certain frequently changing
 
 sourceNames.txt
 
-This is the file used to tell the Parser what are the data stream names from xPlane and their dataGroup/dataIndex locations. This file will be a one time generation and never changed unless a different xPLane input is used. In addition, if "null" strings where there are gaps in the data are not inserted, the dataGroup/dataIndex locations will be off and not be correct for future use. 
+This is the file used to tell the Parser what are the data stream names from xPlane and their dataGroup/dataIndex locations. This file will be a one time generation and shouldn't be regularly edited. 
 
-For now, each aircraft will require it's own sourceNames.txt file as all of the data stream names are not present for each aircraft. The indexes do not change cross aircraft, so a proper merging function is written to create one sourceNames.txt would solve this issue. For instance, a B52 will have a throttle_8 setting while a Cessna 172 will only have a throttle_1 setting. 
+This file was created by the writing to disk feature of xPlane's data streams. All of the data streams were selected to be written to the disk. The file was then opened, and each data stream set to display on in the cockpit, about 15 at a time, and wherever there was a gap, a "null" string was written into the text file. This is required because names of the data streams were necessary and the write to disk feature doesn't put in gaps even though the UDP does. Writing these "null"s into the file is a one time task, as once you do this you save the file and never touch it again. The end of the data stream names is read by a carriage return. Currently, there needs to be a sourceNames.txt for each aircraft used since each aircraft outputs different data stream names. This is NOT because the indexes change cross aircraft, but because a B52 will have a throttle_8 setting while a Cessna 172 will only have a throttle_1 setting so the xPlane developers felt no need to write this null data stream to disk. 
+
+Again, one solution to this is creating a sourceNames.txt style file for each aircraft you wish to obtain data from. Another option would require getting an aircraft or a set of aircraft to output each data stream and use a merging function between them to create a master sourceNames.txt that would have each data stream name and it would never need to be switched.
+
+For now, the requirement is each aircraft will require it's own sourceNames.txt file as all of the data stream names are not present for each aircraft. 
 
 Functions: 
 
@@ -84,9 +80,16 @@ private static Integer readInUserStreams(StringBuilder header, Map<String, Pair<
 	return: 
 		Integer numDataStreams: used to size the byte array for the incoming data from xPlane.
 
-	This function takes in the userSelections.ini file and reads in the PILOTS specified data streams to create a header string of them, and the xPlane data streams they're equal to, to determine which dataGroup/dataIndex pairs are required to be read and written into PILOTS. Care should be taken after the future work is implemented to ensure to the order that these are output since currently they're output in the order of the data stream as dictated by the for loop in convertInputData. Currently it would be necessary to ensure that either: the header is reordered to reflect the dataGroup/dataIndex list numerically, or the user must write the userSelections.ini file in the order of the xPlane dataGroups/dataIndexes. 
+	This function takes in the userSelections.ini file and reads in the PILOTS specified data streams to create a header string of them, and the xPlane data streams they're equal to, to determine which dataGroup/dataIndex pairs are required to be read and written into PILOTS. 
 
-	future work: use the dataGroupNums to select which data to request from xPlane (via Fred's code). 
+===
+
+public static void selectRequestedStreams(Initializations config, Set<Integer> dataGroupNums) 
+	parameters:
+		Intitializations config: class with config data 
+		Set<Integer> dataGroupNums: set of the dataGroups that are required by the streamVector.
+
+	This function takes the data Group Numbers that were determed by the readInUserStreams function, converts them to a byte array and sends it to xPlane to be sent to the converter. For this function to work, it is required that the user correctly input the IP address of the xPlane computer and the port over which they will receive the data. The port can be set in "Settings -> Net Connections -> UDP Port -> port that we receive on"
 
 ===
 
@@ -105,7 +108,8 @@ public static void main(String args[]) throws Exception
 		Create a new file to store the data taken in by the server //currently not functioning on Linux.
 		Build the pilots header
 			Read in the user selected data streams
-		Create the timestamp and verify the user has PILOTS set up to receive the data.
+		Create the timestamp format and await input that the user has PILOTS set up to receive the data.
+		Send the deselect all command to xPlane and select the data streams requested by the user in userSelections.ini
 		If the user specified to write to TCP, set up the sockets
 		If the user specified to record the data, write the header to the file
 		while true:
@@ -114,7 +118,6 @@ public static void main(String args[]) throws Exception
 			convert the input data
 			if record: write the data to file
 			if write to TCP: send over TCP
-
 ===
 
 
@@ -126,9 +129,7 @@ Use the real time from xPlane to feed the time into Pilots (since UDP isn't orde
 
 Control the frequency of the data sent to PILOTS. Possibly by setting a data frequency in the config.ini file.
 
-Implement Fred's data group requesting code. 
-
-Use the dataGroupNums to select which data streams to request from xPlane (via Fred's code) instead of having to do it manually. 
+create multiple sourceNames.txt files for multiple aircraft or merge them all into one comprehensive sourceNames file or determine how to get all of the index Names. 
 
 
 URLs Used
